@@ -834,6 +834,44 @@ json5@^2.1.2:
   dependencies:
     minimist "^1.2.5"
 
+kwan@^0.0.1:
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/kwan/-/kwan-0.0.1.tgz#a2cb642409db176f0c1f6cd1b2167c1291e69bd7"
+  integrity sha512-fcKmepjpOyGF+Rk3ow2IJ/qN60UqhbvbymZt7tDoE/FAeMrGKMme9b8XKhymapPZpgA/lAmIETR/3SQllNEm2Q==
+  dependencies:
+    "@babel/helper-builder-react-jsx" "^7.12.13"
+    "@babel/helper-plugin-utils" "^7.13.0"
+    "@babel/types" "^7.13.13"
+    "@rollup/plugin-alias" "^3.1.2"
+    npm-run-all "^4.1.5"
+    serve "^12.0.0"
+
+kwan@^0.0.2:
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/kwan/-/kwan-0.0.2.tgz#86124dd10fd9a40fd14087752271561d9ae039d4"
+  integrity sha512-svMkHdHHA+zXzTKVxW4wJAj4q+WFtGiy6h3rQEwvU7tO7THhy7BSGloRHHH6eQpVMwMXYurPAMUlV7x1PqMhbA==
+  dependencies:
+    "@babel/helper-builder-react-jsx" "^7.12.13"
+    "@babel/helper-plugin-utils" "^7.13.0"
+    "@babel/types" "^7.13.13"
+    "@rollup/plugin-alias" "^3.1.2"
+    kwan "^0.0.1"
+    npm-run-all "^4.1.5"
+    serve "^12.0.0"
+
+kwan@^0.0.3:
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/kwan/-/kwan-0.0.3.tgz#2404681afcb5723c8253cfeb03b10c7442440b50"
+  integrity sha512-Q368T9qfidQY94izwY5Hgi0ywRWRoioewr/DTbDHaLqRLwsC3uKDA22U+HWaTrJJbPLvUmEVzjoQtM//U09CDA==
+  dependencies:
+    "@babel/helper-builder-react-jsx" "^7.12.13"
+    "@babel/helper-plugin-utils" "^7.13.0"
+    "@babel/types" "^7.13.13"
+    "@rollup/plugin-alias" "^3.1.2"
+    kwan "^0.0.2"
+    npm-run-all "^4.1.5"
+    serve "^12.0.0"
+
 load-json-file@^4.0.0:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/load-json-file/-/load-json-file-4.0.0.tgz#2f5f45ab91e33216234fd53adab668eb4ec0993b"
