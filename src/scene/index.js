@@ -1,113 +1,90 @@
-import Mesh from "@/mesh";
-import { isFn } from "@/utils/base.js";
+import { isFn } from "../tools/base";
+import Loop from "../tools/loop";
 
 class Scene {
-  /**
-   * @param  {} {core
-   * @param  {} style}={}
-   */
-  constructor({ core, style } = {}) {
-    // TODO: 添加 Scene 的样式
-    this.dirtySet = new Set();
-    this.hoverSet = new Set();
-    this.enterSet = new Set();
-    this.shapePools = new Set();
-    this.animateSet = new Set();
+  constructor(target, { width, height, hd = true }) {
+    if (!target || !(target instanceof HTMLElement)) {
+      throw new Error("不能找到匹配的 DOM 元素");
+    }
+    const ele = document.createElement("canvas");
+    this.ctx = ele.getContext("2d");
+    this.width = width;
+    this.height = height;
+    this.shapes = [];
+    this._initHd(ele, hd);
+    this._initEvent(ele);
+    target.appendChild(ele);
   }
 
-  /**
-   * @param  {Shape} shape
-   */
-  add(shape) {
-    this.shapePools.add(shape);
-    this.dirtySet.add(shape);
+  _initHd(ele, hd) {
+    if (!hd) return;
+    const dpr = window.devicePixelRatio;
+    ele.style.width = this.width + "px";
+    ele.style.height = this.height + "px";
+    ele.width = this.width * dpr;
+    ele.height = this.height * dpr;
+    this.ctx.scale(dpr, dpr);
+    this.ctx.save();
   }
 
-  init(renderer) {
-    const { width, height, element, ctx } = renderer;
-    this.ctx = ctx;
-    this._initMesh(width, height);
-    this._appendShape();
-    this._initEvents(element);
+  _initEvent(ele) {
+    this.hoverShapeSet = new Set();
+    ele.addEventListener("click", this.onClick.bind(this));
+    ele.addEventListener("mousemove", this.onMouseMove.bind(this));
+  }
+
+  _traverseShapes(callback) {
+    const len = this.shapes.length;
+    for (let i = 0; i < len; i++) {
+      const shape = this.shapes[i];
+      isFn(callback) && callback(shape);
+    }
+  }
+
+  append(shape) {
+    if (!this.loop) {
+      this.loop = new Loop(this.update.bind(this));
+      this.loop.start();
+    }
+    this.shapes.push(shape);
+  }
+
+  clear() {
+    this.ctx.clearRect(0, 0, this.width, this.height);
   }
 
   update() {
-    this.dirtySet.forEach((item) => {
-      item.adjustDrawStrategy();
-      item.createPath();
-      item.dirty = false;
-    });
-    this.dirtySet.clear();
+    this.ctx.clearRect(0, 0, this.width, this.height);
+    this._traverseShapes((shape) => shape.draw(this.ctx));
   }
 
-  animate() {
-    this.animateSet.forEach((anm) => anm());
-  }
-
-  /**
-   * @param  {number} width
-   * @param  {number} height
-   */
-  _initMesh(width, height) {
-    this.mesh = new Mesh({
-      x: 0,
-      y: 0,
-      width,
-      height,
-    });
-  }
-
-  _appendShape() {
-    this.shapePools.forEach((shape) => {
-      if (shape.events && Object.keys(shape.events).length) {
-        this.mesh.insert(shape);
+  onClick(event) {
+    this._traverseShapes((shape) => {
+      if (shape.events["click"] && shape.isPointInPath(event)) {
+        shape.dispatchEvent("click");
       }
-      if (isFn(shape.animate)) {
-        this.animateSet.add(() => {
-          shape.animate.call(shape, shape);
-        });
-      }
-      shape.addListener("update", () => {
-        this.mesh.update(shape);
-        this.dirtySet.add(shape);
-      });
-      shape.addListener("remove", (shape) => {
-        this.shapePools.delete(shape);
-        this.mesh.remove(shape);
-      });
     });
   }
 
-  /**
-   * @param  {HtmlElement} element
-   */
-  _initEvents(element) {
-    element.addEventListener("click", (event) => {
-      this.mesh.queryMouse(event).forEach((shape) => {
-        const isPointInPath = shape.isPointInPath(event);
-        isPointInPath && shape.eventHandler("click", event);
-      });
-    });
-    element.addEventListener("mousemove", (event) => {
-      this.mesh.queryMouse(event).forEach((shape) => {
-        const isPointInPath = shape.isPointInPath(event);
-        if (isPointInPath) {
-          this.enterSet.add(shape);
-          shape.eventHandler("mousemove", event);
+  onMouseMove(event) {
+    this._traverseShapes((shape) => {
+      let withInPath = false;
+      if (
+        shape.events["mousemove"] ||
+        shape.events["mouseenter"] ||
+        shape.events["mouseleave"]
+      ) {
+        if (shape.isPointInPath(event)) {
+          if (!this.hoverShapeSet.has(shape)) {
+            shape.dispatchEvent("mouseenter");
+          }
+          shape.dispatchEvent("mousemove");
+          this.hoverShapeSet.add(shape);
+        } else if (this.hoverShapeSet.has(shape)) {
+          shape.dispatchEvent("mouseleave");
+          this.hoverShapeSet.delete(shape);
         }
-        if (!this.hoverSet.has(shape) && isPointInPath) {
-          this.hoverSet.add(shape);
-          shape.eventHandler("mouseenter", event);
-        }
-      });
-      // 处理可能存在的mesh边界问题，找到mouseleave的shape
-      this.hoverSet.forEach((shape) => {
-        if (!this.enterSet.has(shape)) {
-          this.hoverSet.delete(shape);
-          shape.eventHandler("mouseleave", event);
-        }
-      });
-      this.enterSet = new Set();
+      }
     });
   }
 }

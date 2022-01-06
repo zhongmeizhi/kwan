@@ -1,4 +1,4 @@
-class Animation {
+class Loop {
   constructor(run) {
     this.run = run;
     this._running = false;
@@ -7,14 +7,14 @@ class Animation {
 
   start() {
     this._running = true;
-    this._runAnimation();
+    this._runRaf();
   }
 
   stop() {
     this._running = false;
   }
 
-  _runAnimation() {
+  _runRaf() {
     const loops = () => {
       this.run();
       this._running && this.requestAnimationFrame(loops);
@@ -38,4 +38,4 @@ class Animation {
   }
 }
 
-export default Animation;
+export default Loop;

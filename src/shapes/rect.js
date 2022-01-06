@@ -1,5 +1,5 @@
-import Shape from "@/shape";
-import { isArr, isNumber } from "@/utils/base.js";
+import Shape from "./shape";
+import { isArr, isNumber } from "../tools/base.js";
 
 class Rect extends Shape {
   constructor(args) {
@@ -7,11 +7,12 @@ class Rect extends Shape {
   }
 
   createPath() {
-    this.path = [];
-    const { x, y, width, height } = this.core;
-    const radius = this.style.borderRadius || 0;
+    const { pos, size, borderRadius } = this.attrs;
+    const [x, y] = pos;
+    const [width, height] = size;
+    const radius = borderRadius || 0;
     if (!radius) {
-      this.path.push({
+      this.paths.push({
         type: "rect",
         args: [x, y, width, height],
       });
@@ -23,10 +24,13 @@ class Rect extends Shape {
   /**
    * @param  {MouseEvent} event
    */
-   isPointInPath(event) {
+  isPointInPath(event) {
     const { offsetX, offsetY } = event;
-    const { x, y, width, height } = this.core;
-    // TODO: fillAble 和 strokeAble
+    const { pos, border, size } = this.attrs;
+    // TODO: border
+    // const [width] = border;
+    const [x, y] = pos;
+    const [width, height] = size;
     if (
       offsetX > x &&
       offsetX < x + width &&
@@ -100,60 +104,60 @@ class Rect extends Shape {
       height = -height;
     }
     const [r1, r2, r3, r4] = this._transformRadius(r, width, height);
-    this.path.push({
+    this.paths.push({
       type: "moveTo",
       args: [x + r1, y],
     });
-    this.path.push({
+    this.paths.push({
       type: "arcTo",
       args: [x + width, y, x + width, y + r2, r2],
     });
-    this.path.push({
+    this.paths.push({
       type: "arcTo",
       args: [x + width, y + height, x + width - r3, y + height, r3],
     });
-    this.path.push({
+    this.paths.push({
       type: "arcTo",
       args: [x, y + height, x, y + height - r4, r4],
     });
-    this.path.push({
+    this.paths.push({
       type: "arcTo",
       args: [x, y, x + r1, y, r1],
     });
     // TODO: 需要 benchmark 2中绘制方法性能差异
-    // this.path.push({
+    // this.paths.push({
     //   type: "moveTo",
     //   args: [x + r1, y],
     // });
-    // this.path.push({
+    // this.paths.push({
     //   type: "lineTo",
     //   args: [x + width - r2, y],
     // });
-    // r2 !== 0 && this.path.push({
+    // r2 !== 0 && this.paths.push({
     //   type: "arc",
     //   args: [x + width - r2, y + r2, r2, -Math.PI / 2, 0],
     // });
-    // this.path.push({
+    // this.paths.push({
     //   type: "lineTo",
     //   args: [x + width, y + height - r3],
     // });
-    // r3 !== 0 && this.path.push({
+    // r3 !== 0 && this.paths.push({
     //   type: "arc",
     //   args: [x + width - r3, y + height - r3, r3, 0, Math.PI / 2],
     // });
-    // this.path.push({
+    // this.paths.push({
     //   type: "lineTo",
     //   args: [x + r4, y + height],
     // });
-    // r4 !== 0 && this.path.push({
+    // r4 !== 0 && this.paths.push({
     //   type: "arc",
     //   args: [x + r4, y + height - r4, r4, Math.PI / 2, Math.PI],
     // });
-    // this.path.push({
+    // this.paths.push({
     //   type: "lineTo",
     //   args: [x, y + r1],
     // });
-    // r1 !== 0 && this.path.push({
+    // r1 !== 0 && this.paths.push({
     //   type: "arc",
     //   args: [x + r1, y + r1, r1, Math.PI, Math.PI * 1.5],
     // });

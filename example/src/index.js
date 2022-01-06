@@ -1,61 +1,42 @@
 import kwan from "../lib/kwan.js";
-import kLineData from "../src/mock-data.js";
 
-const renderer = new kwan.Renderer({
-  target: "#canvas",
-  // dynamic: false,
-  // hd: false,
-});
-const scene = new kwan.Scene();
+const { Scene, shapes } = kwan;
 
-kLineData.staticData.forEach((val) =>
-  scene.add(
-    new kwan.Arc({
-      ...val,
-      events: {
-        mouseenter(shape) {
-          shape.z = shape.style.zIndex;
-          shape.o = shape.style.opacity;
-          shape.style.zIndex = 1;
-          shape.style.opacity = 1;
-        },
-        mouseleave(shape) {
-          shape.style.zIndex = shape.z;
-          shape.style.opacity = shape.o;
-        },
-        click(shape) {
-          shape.core.x += (0.5 - Math.random()) * 20;
-        },
-      },
-    })
-  )
-);
+const ele = document.getElementById("canvasContainer");
 
-kLineData.dynamicData.forEach((val) => {
-  scene.add(
-    new kwan.Rect({
-      ...val,
-      events: {
-        mouseenter(shape) {
-          shape.mk = shape.style.background || "black";
-          shape.style.background = "#ffff00";
-        },
-        mouseleave(shape) {
-          shape.style.background = shape.mk;
-          shape.mk = null;
-        },
-      },
-      animate({ core }) {
-        core.x += core.vx;
-        core.y += core.vy;
-        const { width, height } = renderer;
-        if (core.x > width) core.x = 0;
-        if (core.x < 0) core.x = width;
-        if (core.y > height) core.y = 0;
-        if (core.y < 0) core.y = height;
-      },
-    })
-  );
+const scene = new Scene(ele, {
+  width: 600,
+  height: 300,
 });
 
-renderer.render(scene);
+const rect = new shapes.Rect({
+  pos: [250, 100],
+  size: [100, 100],
+  background: "yellow",
+  border: ["8", "solid", "red"],
+  borderRadius: [8],
+});
+
+rect.addEventListener("click", () => {
+  rect.setAttrs({
+    borderRadius: [Math.random() * 50 + 1],
+  });
+});
+
+rect.addEventListener("mousemove", () => {
+  console.log("mousemove");
+});
+
+rect.addEventListener("mouseenter", () => {
+  rect.setAttrs({
+    background: "red",
+  });
+});
+
+rect.addEventListener("mouseleave", () => {
+  rect.setAttrs({
+    background: "yellow",
+  });
+});
+
+scene.append(rect);

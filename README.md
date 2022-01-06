@@ -2,59 +2,51 @@
 
 一个 2d 版 canvas 绘图库，参考浏览器绘制过程，拥有卓越的 dps 性能体验，简单好记的 api 与 css3 一致的开发体验
 
-`yarn add kwan`
+## 安装
 
-## 组成结构
+> yarn add kwan
 
-1. 渲染器 Renderer
+## 例子
 
-渲染器用来放置场景，指定元素，开启防锯齿等。
+```js
+  const ele = document.getElementById("canvasContainer");
 
-```
-new kwan.Renderer({
-  target: "#canvas",
-  // hd: false,
-});
-```
+  const scene = new Scene(ele, {
+    width: 600,
+    height: 300,
+  });
 
-2. 场景
+  const rect = new shapes.Rect({
+    pos: [250, 100],
+    size: [100, 100],
+    background: "yellow",
+    border: ["8", "solid", "red"],
+    borderRadius: [8],
+  });
 
-场景用来放置图形、事件寻址、时间轴的把控等
+  rect.addEventListener("click", () => {
+    rect.setAttrs({
+      borderRadius: [Math.random() * 50 + 1],
+    });
+  });
 
-```
-new kwan.Scene();
-```
+  rect.addEventListener("mousemove", () => {
+    console.log('mousemove');
+  });
 
-3. 图形
+  rect.addEventListener("mouseenter", () => {
+    rect.setAttrs({
+      background: "red",
+    });
+  });
 
-目前主要支持方形`Rect`和圆形`Arc`，响应式属性更新。
+  rect.addEventListener("mouseleave", () => {
+    rect.setAttrs({
+      background: "yellow",
+    });
+  });
 
-```
-new kwan.Rect({
-  core: {
-    x: 150,
-    y: 50,
-    width: 30,
-    height: 20,
-    vx: 10,
-    vy: 10,
-  },
-  style: {
-    zIndex: 1,
-    opacity: 0.6,
-    background: "#C93860",
-    border: `2 solid #fff`,
-    borderRadius: [1, 2, 3, 4],
-  },
-  events: {
-    mouseenter(shape) {
-    },
-    mouseleave(shape) {
-    },
-    click(shape) {
-    },
-  },
-})
+  scene.append(rect);
 ```
 
 ## TODO_LIST
@@ -66,4 +58,4 @@ new kwan.Rect({
 - [ ] 优化层级
 - [ ] 文档
 - [ ] 引入单元测试
-
+- [ ] webGl
