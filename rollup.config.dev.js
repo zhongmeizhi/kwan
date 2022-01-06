@@ -5,14 +5,8 @@ const config = {
   input: 'src/index.js',
   output: [
     {
-      format: 'umd',
-      file: 'example/lib/kwan.umd.js',
-      name: 'kwan',
-      sourcemap: false,
-    },
-    {
       format: 'esm',
-      file: 'example2/lib/kwan.js',
+      file: 'example/lib/kwan.js',
       name: 'kwan',
       sourcemap: false,
     },

@@ -1,6 +1,6 @@
 {
   "name": "kwan",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "license": "MIT",
   "author": "Mokou",
   "main": "./dist/kwan.js",
@@ -8,11 +8,8 @@
     "dist"
   ],
   "scripts": {
-    "example2": "serve example2",
     "dev": "npm-run-all --parallel dev:*",
     "dev:core": "rollup --config rollup.config.dev.js --watch",
-    "dev:plugin": "rollup --config rollup.config.plugin.js --watch",
-    "dev:runtime": "rollup --config rollup.config.runtime.js --watch",
     "build": "rollup -c"
   },
   "devDependencies": {
@@ -27,7 +24,7 @@
     "@babel/helper-plugin-utils": "^7.13.0",
     "@babel/types": "^7.13.13",
     "@rollup/plugin-alias": "^3.1.2",
-    "kwan": "^0.0.3",
+    "kwan": "^0.0.5",
     "npm-run-all": "^4.1.5",
     "serve": "^12.0.0"
   },
@@ -38,5 +35,8 @@
   "homepage": "https://github.com/zhongmeizhi/kwan",
   "repository": {
     "url": "https://github.com/zhongmeizhi/kwan"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   }
 }
