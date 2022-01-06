@@ -8,7 +8,7 @@ export default {
       format: 'umd',
       file: 'dist/kwan.js',
       name: 'kwan',
-      sourcemap: true,
+      sourcemap: false,
       plugins: [
         terser({
           compress: {
@@ -20,7 +20,14 @@ export default {
     {
       format: 'esm',
       file: 'dist/kwan.esm.js',
-      sourcemap: false
+      sourcemap: false,
+      plugins: [
+        terser({
+          compress: {
+            pure_funcs: ['console.log'] // 去掉console.log函数
+          }
+        })
+      ]
     }
   ],
   plugins: [
