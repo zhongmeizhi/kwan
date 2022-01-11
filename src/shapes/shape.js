@@ -6,8 +6,7 @@ class Shape extends EventDispatcher {
     super();
     // TODO: 入参校验
     this.attrs = attrs;
-    this.paths = [];
-    this.dirty = false;
+    // this.dirty = false;
     this.createPath();
   }
 
@@ -15,7 +14,6 @@ class Shape extends EventDispatcher {
     // TODO: 入参校验
     this.attrs = Object.assign({}, this.attrs, newAttrs);
     if (newAttrs.pos || newAttrs.size || newAttrs.borderRadius) {
-      this.paths = [];
       this.createPath();
     }
   }
@@ -28,11 +26,13 @@ class Shape extends EventDispatcher {
     errorHandler("isPointInPath 需要被重写");
   }
 
+  renderPath() {
+    errorHandler("renderPath 需要被重写");
+  }
+
   draw(ctx) {
     ctx.save();
-    ctx.beginPath();
     this.renderPath(ctx)
-    ctx.closePath();
     ctx.restore();
   }
 }

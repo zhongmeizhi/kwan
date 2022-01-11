@@ -7,6 +7,7 @@ class Rect extends Shape {
   }
 
   createPath() {
+    this.paths = [];
     const { pos, size, borderRadius } = this.attrs;
     const [x, y] = pos;
     const [width, height] = size;
@@ -43,6 +44,7 @@ class Rect extends Shape {
   }
 
   renderPath(ctx) {
+    ctx.beginPath();
     const { border, background, boxShadow, opacity } = this.attrs;
     if (isNumber(opacity)) {
       ctx.globalAlpha = opacity;
@@ -70,6 +72,7 @@ class Rect extends Shape {
       ctx.fillStyle = background;
       ctx.fill();
     }
+    // ctx.closePath();
   }
 
   _transformRadius(r, width, height) {

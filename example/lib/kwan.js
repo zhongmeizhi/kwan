@@ -60,22 +60,26 @@ class Scene {
     this.height = height;
     this.shapes = [];
 
-    this._initHd(ele, hd);
+    this._initBox(ele, hd);
 
     this._initEvent(ele);
 
     target.appendChild(ele);
   }
 
-  _initHd(ele, hd) {
-    if (!hd) return;
-    const dpr = window.devicePixelRatio;
-    ele.style.width = this.width + "px";
-    ele.style.height = this.height + "px";
-    ele.width = this.width * dpr;
-    ele.height = this.height * dpr;
-    this.ctx.scale(dpr, dpr);
-    this.ctx.save();
+  _initBox(ele, hd) {
+    if (hd) {
+      const dpr = window.devicePixelRatio;
+      ele.style.width = this.width + "px";
+      ele.style.height = this.height + "px";
+      ele.width = this.width * dpr;
+      ele.height = this.height * dpr;
+      this.ctx.scale(dpr, dpr);
+      this.ctx.save();
+    } else {
+      ele.width = this.width;
+      ele.height = this.height;
+    }
   }
 
   _initEvent(ele) {
@@ -205,9 +209,8 @@ class Shape extends EventDispatcher {
   constructor(attrs) {
     super(); // TODO: 入参校验
 
-    this.attrs = attrs;
-    this.paths = [];
-    this.dirty = false;
+    this.attrs = attrs; // this.dirty = false;
+
     this.createPath();
   }
 
@@ -216,7 +219,6 @@ class Shape extends EventDispatcher {
     this.attrs = Object.assign({}, this.attrs, newAttrs);
 
     if (newAttrs.pos || newAttrs.size || newAttrs.borderRadius) {
-      this.paths = [];
       this.createPath();
     }
   }
@@ -229,53 +231,13 @@ class Shape extends EventDispatcher {
     errorHandler$1("isPointInPath 需要被重写");
   }
 
+  renderPath() {
+    errorHandler$1("renderPath 需要被重写");
+  }
+
   draw(ctx) {
     ctx.save();
-    ctx.beginPath();
-    const {
-      border,
-      background,
-      boxShadow,
-      opacity
-    } = this.attrs;
-
-    if (isNumber(opacity)) {
-      ctx.globalAlpha = opacity;
-    }
-
-    if (boxShadow) {
-      const [shadowColor, x, y, blur] = boxShadow;
-      ctx.shadowColor = shadowColor;
-      ctx.shadowOffsetX = x;
-      ctx.shadowOffsetY = y;
-      ctx.shadowBlur = blur;
-    }
-
-    this.paths.forEach(({
-      type,
-      args
-    }) => {
-      ctx[type](...args);
-    });
-
-    if (border) {
-      // TODO: border up right down left
-      const [width, type, color] = border;
-
-      if (width && type && color) {
-        ctx.lineWidth = width;
-        ctx.strokeStyle = color;
-      }
-
-      ctx.stroke();
-    }
-
-    if (background) {
-      ctx.fillStyle = background;
-      ctx.fill();
-    }
-
-    ctx.closePath();
+    this.renderPath(ctx);
     ctx.restore();
   }
 
@@ -287,6 +249,7 @@ class Rect extends Shape {
   }
 
   createPath() {
+    this.paths = [];
     const {
       pos,
       size,
@@ -330,6 +293,53 @@ class Rect extends Shape {
     }
 
     return false;
+  }
+
+  renderPath(ctx) {
+    ctx.beginPath();
+    const {
+      border,
+      background,
+      boxShadow,
+      opacity
+    } = this.attrs;
+
+    if (isNumber(opacity)) {
+      ctx.globalAlpha = opacity;
+    }
+
+    if (boxShadow) {
+      const [shadowColor, x, y, blur] = boxShadow;
+      ctx.shadowColor = shadowColor;
+      ctx.shadowOffsetX = x;
+      ctx.shadowOffsetY = y;
+      ctx.shadowBlur = blur;
+    }
+
+    this.paths.forEach(({
+      type,
+      args
+    }) => {
+      ctx[type](...args);
+    });
+
+    if (border) {
+      // TODO: border up right down left
+      const [width, type, color] = border;
+
+      if (width && type && color) {
+        ctx.lineWidth = width;
+        ctx.strokeStyle = color;
+      }
+
+      ctx.stroke();
+    }
+
+    if (background) {
+      ctx.fillStyle = background;
+      ctx.fill();
+    } // ctx.closePath();
+
   }
 
   _transformRadius(r, width, height) {
@@ -463,8 +473,51 @@ class Rect extends Shape {
 
 }
 
+class Arc extends Shape {
+  constructor(args) {
+    super(args);
+  }
+
+  createPath() {}
+  /**
+   * @param  {MouseEvent} event
+   */
+
+
+  isPointInPath(event) {
+    return true;
+  }
+
+  renderPath(ctx) {
+    ctx.beginPath();
+    const {
+      pos,
+      radius,
+      startAngle,
+      endAngle,
+      background,
+      close
+    } = this.attrs;
+    const [x, y] = pos;
+
+    if (close) {
+      ctx.moveTo(x, y);
+    }
+
+    ctx.arc(x, y, radius, startAngle, endAngle, false);
+
+    if (background) {
+      ctx.fillStyle = background;
+      ctx.fill();
+    } // ctx.closePath();
+
+  }
+
+}
+
 var shapes = {
-  Rect
+  Rect,
+  Arc
 };
 
 const kwan = {

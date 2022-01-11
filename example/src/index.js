@@ -6,7 +6,8 @@ const ele = document.getElementById("canvasContainer");
 
 const scene = new Scene(ele, {
   width: 600,
-  height: 300,
+  height: 300,　
+  // hd: false
 });
 
 const rect = new shapes.Rect({
@@ -40,3 +41,20 @@ rect.addEventListener("mouseleave", () => {
 });
 
 scene.append(rect);
+
+const arc = new shapes.Arc({
+  pos: [100, 50],
+  background: "yellow",
+  radius: 20,
+  startAngle: 0,
+  endAngle: 0.5 * Math.PI,
+  close: true
+});
+
+arc.addEventListener("click", () => {
+  arc.setAttrs({
+    pos: [Math.random() * 100 + 1, Math.random() * 50 + 1],
+  });
+});
+
+scene.append(arc);
