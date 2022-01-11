@@ -11,20 +11,24 @@ class Scene {
     this.width = width;
     this.height = height;
     this.shapes = [];
-    this._initHd(ele, hd);
+    this._initBox(ele, hd);
     this._initEvent(ele);
     target.appendChild(ele);
   }
 
-  _initHd(ele, hd) {
-    if (!hd) return;
-    const dpr = window.devicePixelRatio;
-    ele.style.width = this.width + "px";
-    ele.style.height = this.height + "px";
-    ele.width = this.width * dpr;
-    ele.height = this.height * dpr;
-    this.ctx.scale(dpr, dpr);
-    this.ctx.save();
+  _initBox(ele, hd) {
+    if (hd) {
+      const dpr = window.devicePixelRatio;
+      ele.style.width = this.width + "px";
+      ele.style.height = this.height + "px";
+      ele.width = this.width * dpr;
+      ele.height = this.height * dpr;
+      this.ctx.scale(dpr, dpr);
+      this.ctx.save();
+    } else {
+      ele.width = this.width;
+      ele.height = this.height;
+    }
   }
 
   _initEvent(ele) {
