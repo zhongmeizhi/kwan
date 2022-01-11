@@ -31,33 +31,7 @@ class Shape extends EventDispatcher {
   draw(ctx) {
     ctx.save();
     ctx.beginPath();
-    const { border, background, boxShadow, opacity } = this.attrs;
-    if (isNumber(opacity)) {
-      ctx.globalAlpha = opacity;
-    }
-    if (boxShadow) {
-      const [shadowColor, x, y, blur] = boxShadow;
-      ctx.shadowColor = shadowColor;
-      ctx.shadowOffsetX = x;
-      ctx.shadowOffsetY = y;
-      ctx.shadowBlur = blur;
-    }
-    this.paths.forEach(({ type, args }) => {
-      ctx[type](...args);
-    });
-    if (border) {
-      // TODO: border up right down left
-      const [width, type, color] = border;
-      if (width && type && color) {
-        ctx.lineWidth = width;
-        ctx.strokeStyle = color;
-      }
-      ctx.stroke();
-    }
-    if (background) {
-      ctx.fillStyle = background;
-      ctx.fill();
-    }
+    this.renderPath(ctx)
     ctx.closePath();
     ctx.restore();
   }

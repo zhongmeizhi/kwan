@@ -68,7 +68,8 @@ class Mesh {
       }
     }
 
-    // 筛选，感觉算法可以优化
+    // 筛选
+    // TODO: 优化算法
     returnObjects = returnObjects.filter(function (item, index) {
       return returnObjects.indexOf(item) >= index;
     });
@@ -92,13 +93,11 @@ class Mesh {
 
   clear() {
     this.objects = [];
-
     for (let i = 0; i < this.nodes.length; i++) {
       if (this.nodes.length) {
         this.nodes[i].clear();
       }
     }
-
     this.nodes = [];
   }
 
@@ -189,15 +188,12 @@ class Mesh {
     if (startIsNorth && endIsEast) {
       indexes.push(0);
     }
-
     if (startIsWest && startIsNorth) {
       indexes.push(1);
     }
-
     if (startIsWest && endIsSouth) {
       indexes.push(2);
     }
-
     if (endIsEast && endIsSouth) {
       indexes.push(3);
     }
