@@ -7,7 +7,7 @@ class Scene {
       throw new Error("不能找到匹配的 DOM 元素");
     }
     const ele = document.createElement("canvas");
-    this.ctx = ele.getContext("2d");
+    this.ctx = ele.getContext("2d", { alpha: false });
     this.width = width;
     this.height = height;
     this.shapes = [];
@@ -29,6 +29,7 @@ class Scene {
       ele.width = this.width;
       ele.height = this.height;
     }
+    ele.style.transform = "translateZ(0)";
   }
 
   _initEvent(ele) {
@@ -53,12 +54,16 @@ class Scene {
     this.shapes.push(shape);
   }
 
-  clear() {
-    this.ctx.clearRect(0, 0, this.width, this.height);
+  clear(x, y, width, height) {
+    this.ctx.clearRect(x, y, width, height);
+  }
+
+  clearAll() {
+    this.clear(0, 0, this.width, this.height);
   }
 
   update() {
-    this.ctx.clearRect(0, 0, this.width, this.height);
+    this.clearAll();
     this._traverseShapes((shape) => shape.draw(this.ctx));
   }
 
@@ -72,7 +77,6 @@ class Scene {
 
   onMouseMove(event) {
     this._traverseShapes((shape) => {
-      let withInPath = false;
       if (
         shape.events["mousemove"] ||
         shape.events["mouseenter"] ||

@@ -24,10 +24,6 @@ rect.addEventListener("click", () => {
   });
 });
 
-rect.addEventListener("mousemove", () => {
-  console.log("mousemove");
-});
-
 rect.addEventListener("mouseenter", () => {
   rect.setAttrs({
     background: "red",

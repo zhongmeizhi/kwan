@@ -6,7 +6,7 @@ class Shape extends EventDispatcher {
     super();
     // TODO: 入参校验
     this.attrs = attrs;
-    // this.dirty = false;
+    this.dirty = false;
     this.createPath();
   }
 
@@ -16,8 +16,9 @@ class Shape extends EventDispatcher {
     if (newAttrs.pos || newAttrs.size || newAttrs.borderRadius) {
       this.createPath();
     }
+    this.dirty = true;
   }
-
+x
   createPath() {
     errorHandler("render 需要被重写");
   }
