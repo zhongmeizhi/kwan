@@ -4,6 +4,7 @@ import { isArr, isNumber } from "../tools/base.js";
 class Rect extends Shape {
   constructor(args) {
     super(args);
+    this.name = "$$rect";
   }
 
   createPath() {
@@ -28,8 +29,6 @@ class Rect extends Shape {
   isPointInPath(event) {
     const { offsetX, offsetY } = event;
     const { pos, border, size } = this.attrs;
-    // TODO: border
-    // const [width] = border;
     const [x, y] = pos;
     const [width, height] = size;
     if (
@@ -45,7 +44,7 @@ class Rect extends Shape {
 
   renderPath(ctx) {
     ctx.beginPath();
-    const { border, background, boxShadow, opacity } = this.attrs;
+    const { background, boxShadow, opacity } = this.attrs;
     if (isNumber(opacity)) {
       ctx.globalAlpha = opacity;
     }
@@ -59,15 +58,6 @@ class Rect extends Shape {
     this.paths.forEach(({ type, args }) => {
       ctx[type](...args);
     });
-    if (border) {
-      // TODO: border up right down left
-      const [width, type, color] = border;
-      if (width && type && color) {
-        ctx.lineWidth = width;
-        ctx.strokeStyle = color;
-      }
-      ctx.stroke();
-    }
     if (background) {
       ctx.fillStyle = background;
       ctx.fill();

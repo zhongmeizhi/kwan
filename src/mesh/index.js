@@ -1,5 +1,8 @@
+import { isFn } from "../tools/base";
+import Rect from "../shapes/rect";
+
 /**
- * @param  {Shape} shape
+ * @param  {pRect} pRect={x,y,width,height}
  * @param  {number} max_objects=10
  * @param  {number} max_levels=4
  * @param  {number} level=0
@@ -8,134 +11,77 @@ class Mesh {
   constructor(pRect, max_objects = 10, max_levels = 4, level = 0) {
     this.max_objects = max_objects;
     this.max_levels = max_levels;
-
     this.level = level;
     this.bounds = pRect;
-    this.objects = [];
-    this.nodes = [];
+    this.children = [];
+    this.shapes = [];
+    this.allShapeSet = new Set();
+  }
+
+  setDirty(flag) {
+    this.dirty = flag;
+    if (flag) {
+      let parent = this.parent;
+      if (parent && !parent.dirty) {
+        parent.setDirty(true);
+      }
+    }
   }
 
   /**
    * @param  {} shape
+   * 一个图形可以放置到多个网格中
    */
-  insert(shape) {
+  append(shape) {
+    this.setDirty(true);
+    this.allShapeSet.add(shape);
+
     let i = 0,
       indexes;
-
-    if (this.nodes.length) {
+    // 如果有子mesh则插入最下层mesh
+    if (this.children.length) {
       indexes = this._getIndex(shape);
-
       for (i = 0; i < indexes.length; i++) {
-        this.nodes[indexes[i]].insert(shape);
+        this.children[indexes[i]].append(shape);
       }
       return;
     }
 
-    shape.parentBound = this.objects;
-    this.objects.push(shape);
-
+    this.shapes.push(shape);
+    // 分割mesh
     if (
-      this.objects.length > this.max_objects &&
-      this.level < this.max_levels
+      this.shapes.length > this.max_objects &&
+      this.level < this.max_levels &&
+      (this.bounds.width >= 128 || this.bounds.height >= 128)
     ) {
-      if (!this.nodes.length) {
+      if (!this.children.length) {
         this._splitMesh();
       }
-
-      for (i = 0; i < this.objects.length; i++) {
-        indexes = this._getIndex(this.objects[i]);
+      for (i = 0; i < this.shapes.length; i++) {
+        indexes = this._getIndex(this.shapes[i]);
         for (let k = 0; k < indexes.length; k++) {
-          this.nodes[indexes[k]].insert(this.objects[i]);
+          this.children[indexes[k]].append(this.shapes[i]);
         }
       }
-
-      this.objects = [];
+      this.shapes = [];
+    } else {
+      shape.bindMeshes(this);
     }
-  }
-
-  /**
-   * @param  {} shape
-   */
-  retrieve(shape) {
-    let indexes = this._getIndex(shape),
-      returnObjects = this.objects;
-
-    if (this.nodes.length) {
-      for (let i = 0; i < indexes.length; i++) {
-        returnObjects = returnObjects.concat(
-          this.nodes[indexes[i]].retrieve(shape)
-        );
-      }
-    }
-
-    // 筛选
-    // TODO: 优化算法
-    returnObjects = returnObjects.filter(function (item, index) {
-      return returnObjects.indexOf(item) >= index;
-    });
-
-    return returnObjects;
-  }
-
-  /**
-   * @param  {number} mouseX
-   * @param  {number} mouseY
-   * @param  {number} blur
-   */
-  queryMouse({ offsetX, offsetY }, blur = 4) {
-    return this.retrieve({
-      x: offsetX,
-      y: offsetY,
-      width: blur,
-      height: blur,
-    });
-  }
-
-  clear() {
-    this.objects = [];
-    for (let i = 0; i < this.nodes.length; i++) {
-      if (this.nodes.length) {
-        this.nodes[i].clear();
-      }
-    }
-    this.nodes = [];
-  }
-
-  /**
-   * @param  {} shape
-   */
-  update(shape) {
-    if (shape.parentBound) {
-      const idx = shape.parentBound.findIndex((item) => item === shape);
-      shape.parentBound.splice(idx, 1);
-      delete shape.parentBound;
-      const root = this.findRoot();
-      root.insert(shape);
-    }
-  }
-
-  findRoot() {
-    let mesh = this;
-    while (mesh.parentMesh) {
-      mesh = mesh.parentMesh;
-    }
-    return mesh;
   }
 
   _getBoundAttr(bound) {
-    let attr = bound.core || bound;
-    let result = { ...attr };
+    let result = { ...bound.attrs };
     if (result.radius) {
       const diameter = result.radius * 2;
-      result.width = diameter;
-      result.height = diameter;
+      result.size = [diameter, diameter];
+    } else {
     }
     return result;
   }
 
   _splitMesh() {
     let nextLevel = this.level + 1;
-    const { x, y, width, height } = this._getBoundAttr(this.bounds);
+    const { x, y, width, height } = this.bounds;
     let subWidth = width / 2;
     let subHeight = height / 2;
 
@@ -165,8 +111,8 @@ class Mesh {
         this.max_levels,
         nextLevel
       );
-      mesh.parentMesh = this;
-      this.nodes.push(mesh);
+      mesh.parent = this;
+      this.children.push(mesh);
     });
   }
 
@@ -175,7 +121,9 @@ class Mesh {
    * @return {number[]}
    */
   _getIndex(shape) {
-    const { x, y, width, height } = this._getBoundAttr(shape);
+    const { pos, size } = this._getBoundAttr(shape);
+    const [x, y] = pos;
+    const [width, height] = size;
     let indexes = [],
       verticalMidpoint = this.bounds.x + this.bounds.width / 2,
       horizontalMidpoint = this.bounds.y + this.bounds.height / 2;

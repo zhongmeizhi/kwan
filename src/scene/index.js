@@ -1,3 +1,4 @@
+import Mesh from "../mesh/index";
 import { isFn } from "../tools/base";
 import Loop from "../tools/loop";
 
@@ -10,7 +11,13 @@ class Scene {
     this.ctx = ele.getContext("2d", { alpha: false });
     this.width = width;
     this.height = height;
-    this.shapes = [];
+    this.mesh = new Mesh({
+      x: 0,
+      y: 0,
+      width,
+      height,
+    });
+    this._version = 0;
     this._initBox(ele, hd);
     this._initEvent(ele);
     target.appendChild(ele);
@@ -29,7 +36,7 @@ class Scene {
       ele.width = this.width;
       ele.height = this.height;
     }
-    ele.style.transform = "translateZ(0)";
+    // ele.style.transform = "translateZ(0)";
   }
 
   _initEvent(ele) {
@@ -38,20 +45,13 @@ class Scene {
     ele.addEventListener("mousemove", this.onMouseMove.bind(this));
   }
 
-  _traverseShapes(callback) {
-    const len = this.shapes.length;
-    for (let i = 0; i < len; i++) {
-      const shape = this.shapes[i];
-      isFn(callback) && callback(shape);
-    }
-  }
-
   append(shape) {
     if (!this.loop) {
       this.loop = new Loop(this.update.bind(this));
       this.loop.start();
     }
-    this.shapes.push(shape);
+    this.mesh.append(shape);
+    this._version++;
   }
 
   clear(x, y, width, height) {
@@ -62,13 +62,71 @@ class Scene {
     this.clear(0, 0, this.width, this.height);
   }
 
+  isMergeMesh(mesh) {
+    const children = mesh.children;
+    if (children && children.length) {
+      const tr = children[0].dirty;
+      const tl = children[1].dirty;
+      const bl = children[2].dirty;
+      const br = children[3].dirty;
+      return tr + tl + bl + br > 2;
+    }
+    return true;
+  }
+
+  // 边界盒子
   update() {
-    this.clearAll();
-    this._traverseShapes((shape) => shape.draw(this.ctx));
+    if (this.mesh.dirty) {
+      const boundBox = [];
+      const updateStack = [this.mesh];
+      while (updateStack.length) {
+        const item = updateStack.pop();
+        item.dirty = false;
+        const children = item.children;
+        if (this.isMergeMesh(item)) {
+          // 块合并
+          boundBox.push(item);
+          const cleanStack = [item];
+          while (cleanStack.length) {
+            const sub = cleanStack.pop();
+            const children = sub.children;
+            for (let i = children.length - 1; i >= 0; i--) {
+              children[i].dirty = false;
+              cleanStack.push(children[i]);
+            }
+          }
+        } else {
+          for (let i = children.length - 1; i >= 0; i--) {
+            const child = children[i];
+            if (child.dirty) {
+              updateStack.push(child);
+              if (child.shapes.length) {
+                boundBox.push(child);
+              }
+            }
+          }
+        }
+      }
+      boundBox.forEach((box) => {
+        const { x, y, width, height } = box.bounds;
+        this.ctx.save();
+        this.clear(x, y, width, height);
+        this.ctx.rect(x, y, width, height);
+        this.ctx.clip();
+        box.allShapeSet.forEach((shape) => {
+          shape.draw(this.ctx);
+        });
+        this.ctx.restore();
+      });
+    }
+  }
+
+  getAllShapes() {
+    return this.mesh.allShapeSet;
   }
 
   onClick(event) {
-    this._traverseShapes((shape) => {
+    this.getAllShapes().forEach((shape) => {
       if (shape.events["click"] && shape.isPointInPath(event)) {
         shape.dispatchEvent("click");
       }
@@ -76,7 +134,7 @@ class Scene {
   }
 
   onMouseMove(event) {
-    this._traverseShapes((shape) => {
+    this.getAllShapes().forEach((shape) => {
       if (
         shape.events["mousemove"] ||
         shape.events["mouseenter"] ||

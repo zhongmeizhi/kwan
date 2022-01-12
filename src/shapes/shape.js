@@ -6,7 +6,8 @@ class Shape extends EventDispatcher {
     super();
     // TODO: 入参校验
     this.attrs = attrs;
-    this.dirty = false;
+    this.meshes = [];
+    this.type == "$$shape";
     this.createPath();
   }
 
@@ -16,9 +17,13 @@ class Shape extends EventDispatcher {
     if (newAttrs.pos || newAttrs.size || newAttrs.borderRadius) {
       this.createPath();
     }
-    this.dirty = true;
+    this.meshes.forEach((mesh) => mesh.setDirty(true));
   }
-x
+
+  bindMeshes(mesh) {
+    this.meshes.push(mesh);
+  }
+
   createPath() {
     errorHandler("render 需要被重写");
   }
@@ -33,8 +38,9 @@ x
 
   draw(ctx) {
     ctx.save();
-    this.renderPath(ctx)
+    this.renderPath(ctx);
     ctx.restore();
+    this.dirty = false;
   }
 }
 

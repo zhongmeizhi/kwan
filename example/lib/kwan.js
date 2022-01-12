@@ -2,155 +2,10 @@ function isNumber(v) {
   return typeof v === "number";
 }
 const isArr = Array.isArray;
-function isFn$1(fn) {
-  return typeof fn === "function";
-}
 function errorHandler$1(msg) {
   throw new Error(msg);
 }
 const EVENT_SET = new Set(["click", "mousemove", "mouseenter", "mouseleave"]);
-
-class Loop {
-  constructor(run) {
-    this.run = run;
-    this._running = false;
-    this.requestAnimationFrame = this._getRaf();
-  }
-
-  start() {
-    this._running = true;
-
-    this._runRaf();
-  }
-
-  stop() {
-    this._running = false;
-  }
-
-  _runRaf() {
-    const loops = () => {
-      this.run();
-      this._running && this.requestAnimationFrame(loops);
-    };
-
-    this.requestAnimationFrame(loops);
-  }
-
-  _getRaf() {
-    return typeof window !== "undefined" && (window.requestAnimationFrame && window.requestAnimationFrame.bind(window) || window.msRequestAnimationFrame && window.msRequestAnimationFrame.bind(window) || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame) || function (func) {
-      return setTimeout(func, 16);
-    };
-  }
-
-}
-
-class Scene {
-  constructor(target, {
-    width,
-    height,
-    hd = true
-  }) {
-    if (!target || !(target instanceof HTMLElement)) {
-      throw new Error("不能找到匹配的 DOM 元素");
-    }
-
-    const ele = document.createElement("canvas");
-    this.ctx = ele.getContext("2d", {
-      alpha: false
-    });
-    this.width = width;
-    this.height = height;
-    this.shapes = [];
-
-    this._initBox(ele, hd);
-
-    this._initEvent(ele);
-
-    target.appendChild(ele);
-  }
-
-  _initBox(ele, hd) {
-    if (hd) {
-      const dpr = window.devicePixelRatio;
-      ele.style.width = this.width + "px";
-      ele.style.height = this.height + "px";
-      ele.width = this.width * dpr;
-      ele.height = this.height * dpr;
-      this.ctx.scale(dpr, dpr);
-      this.ctx.save();
-    } else {
-      ele.width = this.width;
-      ele.height = this.height;
-    }
-
-    ele.style.transform = "translateZ(0)";
-  }
-
-  _initEvent(ele) {
-    this.hoverShapeSet = new Set();
-    ele.addEventListener("click", this.onClick.bind(this));
-    ele.addEventListener("mousemove", this.onMouseMove.bind(this));
-  }
-
-  _traverseShapes(callback) {
-    const len = this.shapes.length;
-
-    for (let i = 0; i < len; i++) {
-      const shape = this.shapes[i];
-      isFn$1(callback) && callback(shape);
-    }
-  }
-
-  append(shape) {
-    if (!this.loop) {
-      this.loop = new Loop(this.update.bind(this));
-      this.loop.start();
-    }
-
-    this.shapes.push(shape);
-  }
-
-  clear(x, y, width, height) {
-    this.ctx.clearRect(x, y, width, height);
-  }
-
-  clearAll() {
-    this.clear(0, 0, this.width, this.height);
-  }
-
-  update() {
-    this.clearAll();
-
-    this._traverseShapes(shape => shape.draw(this.ctx));
-  }
-
-  onClick(event) {
-    this._traverseShapes(shape => {
-      if (shape.events["click"] && shape.isPointInPath(event)) {
-        shape.dispatchEvent("click");
-      }
-    });
-  }
-
-  onMouseMove(event) {
-    this._traverseShapes(shape => {
-      if (shape.events["mousemove"] || shape.events["mouseenter"] || shape.events["mouseleave"]) {
-        if (shape.isPointInPath(event)) {
-          if (!this.hoverShapeSet.has(shape)) {
-            shape.dispatchEvent("mouseenter");
-          }
-
-          shape.dispatchEvent("mousemove");
-          this.hoverShapeSet.add(shape);
-        } else if (this.hoverShapeSet.has(shape)) {
-          shape.dispatchEvent("mouseleave");
-          this.hoverShapeSet.delete(shape);
-        }
-      }
-    });
-  }
-
-}
 
 function isFn(fn) {
   return typeof fn === "function";
@@ -217,7 +72,8 @@ class Shape extends EventDispatcher {
     super(); // TODO: 入参校验
 
     this.attrs = attrs;
-    this.dirty = false;
+    this.meshes = [];
+    this.type == "$$shape";
     this.createPath();
   }
 
@@ -229,10 +85,12 @@ class Shape extends EventDispatcher {
       this.createPath();
     }
 
-    this.dirty = true;
+    this.meshes.forEach(mesh => mesh.setDirty(true));
   }
 
-  x;
+  bindMeshes(mesh) {
+    this.meshes.push(mesh);
+  }
 
   createPath() {
     errorHandler$1("render 需要被重写");
@@ -250,6 +108,7 @@ class Shape extends EventDispatcher {
     ctx.save();
     this.renderPath(ctx);
     ctx.restore();
+    this.dirty = false;
   }
 
 }
@@ -257,6 +116,7 @@ class Shape extends EventDispatcher {
 class Rect extends Shape {
   constructor(args) {
     super(args);
+    this.name = "$$rect";
   }
 
   createPath() {
@@ -293,9 +153,7 @@ class Rect extends Shape {
       pos,
       border,
       size
-    } = this.attrs; // TODO: border
-    // const [width] = border;
-
+    } = this.attrs;
     const [x, y] = pos;
     const [width, height] = size;
 
@@ -309,7 +167,6 @@ class Rect extends Shape {
   renderPath(ctx) {
     ctx.beginPath();
     const {
-      border,
       background,
       boxShadow,
       opacity
@@ -333,18 +190,6 @@ class Rect extends Shape {
     }) => {
       ctx[type](...args);
     });
-
-    if (border) {
-      // TODO: border up right down left
-      const [width, type, color] = border;
-
-      if (width && type && color) {
-        ctx.lineWidth = width;
-        ctx.strokeStyle = color;
-      }
-
-      ctx.stroke();
-    }
 
     if (background) {
       ctx.fillStyle = background;
@@ -484,9 +329,384 @@ class Rect extends Shape {
 
 }
 
+/**
+ * @param  {pRect} pRect={x,y,width,height}
+ * @param  {number} max_objects=10
+ * @param  {number} max_levels=4
+ * @param  {number} level=0
+ */
+
+class Mesh {
+  constructor(pRect, max_objects = 10, max_levels = 4, level = 0) {
+    this.max_objects = max_objects;
+    this.max_levels = max_levels;
+    this.level = level;
+    this.bounds = pRect;
+    this.children = [];
+    this.shapes = [];
+    this.allShapeSet = new Set();
+  }
+
+  setDirty(flag) {
+    this.dirty = flag;
+
+    if (flag) {
+      let parent = this.parent;
+
+      if (parent && !parent.dirty) {
+        parent.setDirty(true);
+      }
+    }
+  }
+  /**
+   * @param  {} shape
+   * 一个图形可以放置到多个网格中
+   */
+
+
+  append(shape) {
+    this.setDirty(true);
+    this.allShapeSet.add(shape);
+    let i = 0,
+        indexes; // 如果有子mesh则插入最下层mesh
+
+    if (this.children.length) {
+      indexes = this._getIndex(shape);
+
+      for (i = 0; i < indexes.length; i++) {
+        this.children[indexes[i]].append(shape);
+      }
+
+      return;
+    }
+
+    this.shapes.push(shape); // 分割mesh
+
+    if (this.shapes.length > this.max_objects && this.level < this.max_levels && (this.bounds.width >= 128 || this.bounds.height >= 128)) {
+      if (!this.children.length) {
+        this._splitMesh();
+      }
+
+      for (i = 0; i < this.shapes.length; i++) {
+        indexes = this._getIndex(this.shapes[i]);
+
+        for (let k = 0; k < indexes.length; k++) {
+          this.children[indexes[k]].append(this.shapes[i]);
+        }
+      }
+
+      this.shapes = [];
+    } else {
+      shape.bindMeshes(this);
+    }
+  }
+
+  _getBoundAttr(bound) {
+    let result = { ...bound.attrs
+    };
+
+    if (result.radius) {
+      const diameter = result.radius * 2;
+      result.size = [diameter, diameter];
+    }
+
+    return result;
+  }
+
+  _splitMesh() {
+    let nextLevel = this.level + 1;
+    const {
+      x,
+      y,
+      width,
+      height
+    } = this.bounds;
+    let subWidth = width / 2;
+    let subHeight = height / 2;
+    const axis = [{
+      x: x + subWidth,
+      y: y
+    }, {
+      x: x,
+      y: y
+    }, {
+      x: x,
+      y: y + subHeight
+    }, {
+      x: x + subWidth,
+      y: y + subHeight
+    }];
+    axis.forEach(({
+      x,
+      y
+    }) => {
+      const mesh = new Mesh({
+        x,
+        y,
+        width: subWidth,
+        height: subHeight
+      }, this.max_objects, this.max_levels, nextLevel);
+      mesh.parent = this;
+      this.children.push(mesh);
+    });
+  }
+  /**
+   * @param {Shape} shape
+   * @return {number[]}
+   */
+
+
+  _getIndex(shape) {
+    const {
+      pos,
+      size
+    } = this._getBoundAttr(shape);
+
+    const [x, y] = pos;
+    const [width, height] = size;
+    let indexes = [],
+        verticalMidpoint = this.bounds.x + this.bounds.width / 2,
+        horizontalMidpoint = this.bounds.y + this.bounds.height / 2;
+    let startIsNorth = y < horizontalMidpoint,
+        startIsWest = x < verticalMidpoint,
+        endIsEast = x + width > verticalMidpoint,
+        endIsSouth = y + height > horizontalMidpoint;
+
+    if (startIsNorth && endIsEast) {
+      indexes.push(0);
+    }
+
+    if (startIsWest && startIsNorth) {
+      indexes.push(1);
+    }
+
+    if (startIsWest && endIsSouth) {
+      indexes.push(2);
+    }
+
+    if (endIsEast && endIsSouth) {
+      indexes.push(3);
+    }
+
+    return indexes;
+  }
+
+}
+
+class Loop {
+  constructor(run) {
+    this.run = run;
+    this._running = false;
+    this.requestAnimationFrame = this._getRaf();
+  }
+
+  start() {
+    this._running = true;
+
+    this._runRaf();
+  }
+
+  stop() {
+    this._running = false;
+  }
+
+  _runRaf() {
+    const loops = () => {
+      this.run();
+      this._running && this.requestAnimationFrame(loops);
+    };
+
+    this.requestAnimationFrame(loops);
+  }
+
+  _getRaf() {
+    return typeof window !== "undefined" && (window.requestAnimationFrame && window.requestAnimationFrame.bind(window) || window.msRequestAnimationFrame && window.msRequestAnimationFrame.bind(window) || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame) || function (func) {
+      return setTimeout(func, 16);
+    };
+  }
+
+}
+
+class Scene {
+  constructor(target, {
+    width,
+    height,
+    hd = true
+  }) {
+    if (!target || !(target instanceof HTMLElement)) {
+      throw new Error("不能找到匹配的 DOM 元素");
+    }
+
+    const ele = document.createElement("canvas");
+    this.ctx = ele.getContext("2d", {
+      alpha: false
+    });
+    this.width = width;
+    this.height = height;
+    this.mesh = new Mesh({
+      x: 0,
+      y: 0,
+      width,
+      height
+    });
+    this._version = 0;
+
+    this._initBox(ele, hd);
+
+    this._initEvent(ele);
+
+    target.appendChild(ele);
+  }
+
+  _initBox(ele, hd) {
+    if (hd) {
+      const dpr = window.devicePixelRatio;
+      ele.style.width = this.width + "px";
+      ele.style.height = this.height + "px";
+      ele.width = this.width * dpr;
+      ele.height = this.height * dpr;
+      this.ctx.scale(dpr, dpr);
+      this.ctx.save();
+    } else {
+      ele.width = this.width;
+      ele.height = this.height;
+    } // ele.style.transform = "translateZ(0)";
+
+  }
+
+  _initEvent(ele) {
+    this.hoverShapeSet = new Set();
+    ele.addEventListener("click", this.onClick.bind(this));
+    ele.addEventListener("mousemove", this.onMouseMove.bind(this));
+  }
+
+  append(shape) {
+    if (!this.loop) {
+      this.loop = new Loop(this.update.bind(this));
+      this.loop.start();
+    }
+
+    this.mesh.append(shape);
+    this._version++;
+  }
+
+  clear(x, y, width, height) {
+    this.ctx.clearRect(x, y, width, height);
+  }
+
+  clearAll() {
+    this.clear(0, 0, this.width, this.height);
+  }
+
+  isMergeMesh(mesh) {
+    const children = mesh.children;
+
+    if (children && children.length) {
+      const tr = children[0].dirty;
+      const tl = children[1].dirty;
+      const bl = children[2].dirty;
+      const br = children[3].dirty;
+      return tr + tl + bl + br > 2;
+    }
+
+    return true;
+  } // 边界盒子
+
+
+  update() {
+    if (this.mesh.dirty) {
+      const boundBox = [];
+      const updateStack = [this.mesh];
+
+      while (updateStack.length) {
+        const item = updateStack.pop();
+        item.dirty = false;
+        const children = item.children;
+
+        if (this.isMergeMesh(item)) {
+          // 块合并
+          boundBox.push(item);
+          const cleanStack = [item];
+
+          while (cleanStack.length) {
+            const sub = cleanStack.pop();
+            const children = sub.children;
+
+            for (let i = children.length - 1; i >= 0; i--) {
+              children[i].dirty = false;
+              cleanStack.push(children[i]);
+            }
+          }
+        } else {
+          for (let i = children.length - 1; i >= 0; i--) {
+            const child = children[i];
+
+            if (child.dirty) {
+              updateStack.push(child);
+
+              if (child.shapes.length) {
+                boundBox.push(child);
+              }
+            }
+          }
+        }
+      }
+
+      boundBox.forEach(box => {
+        const {
+          x,
+          y,
+          width,
+          height
+        } = box.bounds;
+        this.ctx.save();
+        this.clear(x, y, width, height);
+        this.ctx.rect(x, y, width, height);
+        this.ctx.clip();
+        box.allShapeSet.forEach(shape => {
+          shape.draw(this.ctx);
+        });
+        this.ctx.restore();
+      });
+    }
+  }
+
+  getAllShapes() {
+    return this.mesh.allShapeSet;
+  }
+
+  onClick(event) {
+    this.getAllShapes().forEach(shape => {
+      if (shape.events["click"] && shape.isPointInPath(event)) {
+        shape.dispatchEvent("click");
+      }
+    });
+  }
+
+  onMouseMove(event) {
+    this.getAllShapes().forEach(shape => {
+      if (shape.events["mousemove"] || shape.events["mouseenter"] || shape.events["mouseleave"]) {
+        if (shape.isPointInPath(event)) {
+          if (!this.hoverShapeSet.has(shape)) {
+            shape.dispatchEvent("mouseenter");
+          }
+
+          shape.dispatchEvent("mousemove");
+          this.hoverShapeSet.add(shape);
+        } else if (this.hoverShapeSet.has(shape)) {
+          shape.dispatchEvent("mouseleave");
+          this.hoverShapeSet.delete(shape);
+        }
+      }
+    });
+  }
+
+}
+
 class Arc extends Shape {
   constructor(args) {
     super(args);
+    this.name = "$$arc";
   }
 
   createPath() {}
@@ -496,6 +716,7 @@ class Arc extends Shape {
 
 
   isPointInPath(event) {
+    // TODO: 扇形边界
     return true;
   }
 
@@ -507,9 +728,14 @@ class Arc extends Shape {
       startAngle,
       endAngle,
       background,
+      opacity,
       close
     } = this.attrs;
     const [x, y] = pos;
+
+    if (isNumber(opacity)) {
+      ctx.globalAlpha = opacity;
+    }
 
     if (close) {
       ctx.moveTo(x, y);
