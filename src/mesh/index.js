@@ -19,10 +19,10 @@ class Mesh {
   }
 
   setDirty(flag) {
-    this.dirty = flag;
+    this.isDirty = flag;
     if (flag) {
       let parent = this.parent;
-      if (parent && !parent.dirty) {
+      if (parent && !parent.isDirty) {
         parent.setDirty(true);
       }
     }

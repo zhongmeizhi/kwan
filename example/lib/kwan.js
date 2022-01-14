@@ -108,7 +108,7 @@ class Shape extends EventDispatcher {
     ctx.save();
     this.renderPath(ctx);
     ctx.restore();
-    this.dirty = false;
+    this.isDirty = false;
   }
 
 }
@@ -190,12 +190,12 @@ class Rect extends Shape {
     }) => {
       ctx[type](...args);
     });
+    ctx.closePath();
 
     if (background) {
       ctx.fillStyle = background;
       ctx.fill();
-    } // ctx.closePath();
-
+    }
   }
 
   _transformRadius(r, width, height) {
@@ -288,43 +288,7 @@ class Rect extends Shape {
     this.paths.push({
       type: "arcTo",
       args: [x, y, x + r1, y, r1]
-    }); // TODO: 需要 benchmark 2中绘制方法性能差异
-    // this.paths.push({
-    //   type: "moveTo",
-    //   args: [x + r1, y],
-    // });
-    // this.paths.push({
-    //   type: "lineTo",
-    //   args: [x + width - r2, y],
-    // });
-    // r2 !== 0 && this.paths.push({
-    //   type: "arc",
-    //   args: [x + width - r2, y + r2, r2, -Math.PI / 2, 0],
-    // });
-    // this.paths.push({
-    //   type: "lineTo",
-    //   args: [x + width, y + height - r3],
-    // });
-    // r3 !== 0 && this.paths.push({
-    //   type: "arc",
-    //   args: [x + width - r3, y + height - r3, r3, 0, Math.PI / 2],
-    // });
-    // this.paths.push({
-    //   type: "lineTo",
-    //   args: [x + r4, y + height],
-    // });
-    // r4 !== 0 && this.paths.push({
-    //   type: "arc",
-    //   args: [x + r4, y + height - r4, r4, Math.PI / 2, Math.PI],
-    // });
-    // this.paths.push({
-    //   type: "lineTo",
-    //   args: [x, y + r1],
-    // });
-    // r1 !== 0 && this.paths.push({
-    //   type: "arc",
-    //   args: [x + r1, y + r1, r1, Math.PI, Math.PI * 1.5],
-    // });
+    });
   }
 
 }
@@ -348,12 +312,12 @@ class Mesh {
   }
 
   setDirty(flag) {
-    this.dirty = flag;
+    this.isDirty = flag;
 
     if (flag) {
       let parent = this.parent;
 
-      if (parent && !parent.dirty) {
+      if (parent && !parent.isDirty) {
         parent.setDirty(true);
       }
     }
@@ -493,40 +457,6 @@ class Mesh {
 
 }
 
-class Loop {
-  constructor(run) {
-    this.run = run;
-    this._running = false;
-    this.requestAnimationFrame = this._getRaf();
-  }
-
-  start() {
-    this._running = true;
-
-    this._runRaf();
-  }
-
-  stop() {
-    this._running = false;
-  }
-
-  _runRaf() {
-    const loops = () => {
-      this.run();
-      this._running && this.requestAnimationFrame(loops);
-    };
-
-    this.requestAnimationFrame(loops);
-  }
-
-  _getRaf() {
-    return typeof window !== "undefined" && (window.requestAnimationFrame && window.requestAnimationFrame.bind(window) || window.msRequestAnimationFrame && window.msRequestAnimationFrame.bind(window) || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame) || function (func) {
-      return setTimeout(func, 16);
-    };
-  }
-
-}
-
 class Scene {
   constructor(target, {
     width,
@@ -538,9 +468,7 @@ class Scene {
     }
 
     const ele = document.createElement("canvas");
-    this.ctx = ele.getContext("2d", {
-      alpha: false
-    });
+    this.ctx = ele.getContext("2d");
     this.width = width;
     this.height = height;
     this.mesh = new Mesh({
@@ -581,11 +509,6 @@ class Scene {
   }
 
   append(shape) {
-    if (!this.loop) {
-      this.loop = new Loop(this.update.bind(this));
-      this.loop.start();
-    }
-
     this.mesh.append(shape);
     this._version++;
   }
@@ -602,26 +525,30 @@ class Scene {
     const children = mesh.children;
 
     if (children && children.length) {
-      const tr = children[0].dirty;
-      const tl = children[1].dirty;
-      const bl = children[2].dirty;
-      const br = children[3].dirty;
+      const tr = children[0].isDirty;
+      const tl = children[1].isDirty;
+      const bl = children[2].isDirty;
+      const br = children[3].isDirty;
       return tr + tl + bl + br > 2;
     }
 
     return true;
-  } // 边界盒子
-
+  }
 
   update() {
-    if (this.mesh.dirty) {
+    if (this.mesh.isDirty) {
       const boundBox = [];
       const updateStack = [this.mesh];
 
       while (updateStack.length) {
         const item = updateStack.pop();
-        item.dirty = false;
-        const children = item.children;
+        item.isDirty = false;
+        const children = item.children; // 容器元素收录
+
+        if (item.shapes.length) {
+          boundBox.push(item);
+          continue;
+        }
 
         if (this.isMergeMesh(item)) {
           // 块合并
@@ -633,7 +560,7 @@ class Scene {
             const children = sub.children;
 
             for (let i = children.length - 1; i >= 0; i--) {
-              children[i].dirty = false;
+              children[i].isDirty = false;
               cleanStack.push(children[i]);
             }
           }
@@ -641,12 +568,8 @@ class Scene {
           for (let i = children.length - 1; i >= 0; i--) {
             const child = children[i];
 
-            if (child.dirty) {
+            if (child.isDirty) {
               updateStack.push(child);
-
-              if (child.shapes.length) {
-                boundBox.push(child);
-              }
             }
           }
         }
@@ -752,9 +675,58 @@ class Arc extends Shape {
 
 }
 
+class Ring extends Shape {
+  constructor(args) {
+    super(args);
+    this.name = "$$ring";
+  }
+
+  createPath() {}
+  /**
+   * @param  {MouseEvent} event
+   */
+
+
+  isPointInPath(event) {
+    // TODO: 圆环边界
+    return true;
+  }
+
+  renderPath(ctx) {
+    ctx.beginPath();
+    const {
+      pos,
+      innerRadius,
+      outerRadius,
+      startAngle,
+      endAngle,
+      background,
+      opacity
+    } = this.attrs;
+    const [x, y] = pos;
+
+    if (isNumber(opacity)) {
+      ctx.globalAlpha = opacity;
+    }
+
+    ctx.moveTo(x + innerRadius, y);
+    ctx.arc(x, y, innerRadius, startAngle, endAngle, false);
+    ctx.moveTo(x + outerRadius, y);
+    ctx.arc(x, y, outerRadius, startAngle, endAngle, true);
+
+    if (background) {
+      ctx.fillStyle = background;
+      ctx.fill();
+    } // ctx.closePath();
+
+  }
+
+}
+
 var shapes = {
   Rect,
-  Arc
+  Arc,
+  Ring
 };
 
 const kwan = {

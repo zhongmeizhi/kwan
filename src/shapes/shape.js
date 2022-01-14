@@ -40,7 +40,7 @@ class Shape extends EventDispatcher {
     ctx.save();
     this.renderPath(ctx);
     ctx.restore();
-    this.dirty = false;
+    this.isDirty = false;
   }
 }
 

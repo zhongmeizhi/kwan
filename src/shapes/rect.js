@@ -58,11 +58,11 @@ class Rect extends Shape {
     this.paths.forEach(({ type, args }) => {
       ctx[type](...args);
     });
+    ctx.closePath();
     if (background) {
       ctx.fillStyle = background;
       ctx.fill();
     }
-    // ctx.closePath();
   }
 
   _transformRadius(r, width, height) {
@@ -147,43 +147,6 @@ class Rect extends Shape {
       type: "arcTo",
       args: [x, y, x + r1, y, r1],
     });
-    // TODO: 需要 benchmark 2中绘制方法性能差异
-    // this.paths.push({
-    //   type: "moveTo",
-    //   args: [x + r1, y],
-    // });
-    // this.paths.push({
-    //   type: "lineTo",
-    //   args: [x + width - r2, y],
-    // });
-    // r2 !== 0 && this.paths.push({
-    //   type: "arc",
-    //   args: [x + width - r2, y + r2, r2, -Math.PI / 2, 0],
-    // });
-    // this.paths.push({
-    //   type: "lineTo",
-    //   args: [x + width, y + height - r3],
-    // });
-    // r3 !== 0 && this.paths.push({
-    //   type: "arc",
-    //   args: [x + width - r3, y + height - r3, r3, 0, Math.PI / 2],
-    // });
-    // this.paths.push({
-    //   type: "lineTo",
-    //   args: [x + r4, y + height],
-    // });
-    // r4 !== 0 && this.paths.push({
-    //   type: "arc",
-    //   args: [x + r4, y + height - r4, r4, Math.PI / 2, Math.PI],
-    // });
-    // this.paths.push({
-    //   type: "lineTo",
-    //   args: [x, y + r1],
-    // });
-    // r1 !== 0 && this.paths.push({
-    //   type: "arc",
-    //   args: [x + r1, y + r1, r1, Math.PI, Math.PI * 1.5],
-    // });
   }
 }
 

@@ -1,6 +1,4 @@
 import Mesh from "../mesh/index";
-import { isFn } from "../tools/base";
-import Loop from "../tools/loop";
 
 class Scene {
   constructor(target, { width, height, hd = true }) {
@@ -8,7 +6,7 @@ class Scene {
       throw new Error("不能找到匹配的 DOM 元素");
     }
     const ele = document.createElement("canvas");
-    this.ctx = ele.getContext("2d", { alpha: false });
+    this.ctx = ele.getContext("2d");
     this.width = width;
     this.height = height;
     this.mesh = new Mesh({
@@ -46,10 +44,6 @@ class Scene {
   }
 
   append(shape) {
-    if (!this.loop) {
-      this.loop = new Loop(this.update.bind(this));
-      this.loop.start();
-    }
     this.mesh.append(shape);
     this._version++;
   }
@@ -65,24 +59,28 @@ class Scene {
   isMergeMesh(mesh) {
     const children = mesh.children;
     if (children && children.length) {
-      const tr = children[0].dirty;
-      const tl = children[1].dirty;
-      const bl = children[2].dirty;
-      const br = children[3].dirty;
+      const tr = children[0].isDirty;
+      const tl = children[1].isDirty;
+      const bl = children[2].isDirty;
+      const br = children[3].isDirty;
       return tr + tl + bl + br > 2;
     }
     return true;
   }
 
-  // 边界盒子
   update() {
-    if (this.mesh.dirty) {
+    if (this.mesh.isDirty) {
       const boundBox = [];
       const updateStack = [this.mesh];
       while (updateStack.length) {
         const item = updateStack.pop();
-        item.dirty = false;
+        item.isDirty = false;
         const children = item.children;
+        // 容器元素收录
+        if (item.shapes.length) {
+          boundBox.push(item);
+          continue;
+        }
         if (this.isMergeMesh(item)) {
           // 块合并
           boundBox.push(item);
@@ -91,18 +89,15 @@ class Scene {
             const sub = cleanStack.pop();
             const children = sub.children;
             for (let i = children.length - 1; i >= 0; i--) {
-              children[i].dirty = false;
+              children[i].isDirty = false;
               cleanStack.push(children[i]);
             }
           }
         } else {
           for (let i = children.length - 1; i >= 0; i--) {
             const child = children[i];
-            if (child.dirty) {
+            if (child.isDirty) {
               updateStack.push(child);
-              if (child.shapes.length) {
-                boundBox.push(child);
-              }
             }
           }
         }

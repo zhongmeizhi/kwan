@@ -9,27 +9,21 @@ const { Scene, shapes } = kwan;
 const ele = document.getElementById("canvasContainer");
 
 const scene = new Scene(ele, {
-  width: 600,
-  height: 300,
+  width: 512,
+  height: 512,
   // hd: false
 });
 
-const arr = new Array(100).fill(0).map(
+const arr = new Array(1000).fill(0).map(
   () =>
     new shapes.Rect({
-      pos: [random(590), random(290)],
+      pos: [random(500), random(500)],
       background: "yellow",
       size: [20, 20],
+      // borderRadius: [8],
     })
 );
 arr.forEach((a) => scene.append(a));
-setInterval(() => {
-  arr.forEach((a) => {
-    a.setAttrs({
-      pos: [random(590), random(290)],
-    });
-  });
-}, 20);
 
 const rect = new shapes.Rect({
   pos: [280, 130],
@@ -40,12 +34,7 @@ const rect = new shapes.Rect({
 
 rect.addEventListener("click", () => {
   rect.setAttrs({
-    borderRadius: [
-      random(50),
-      random(50),
-      random(50),
-      random(50)
-    ],
+    borderRadius: [random(50), random(50), random(50), random(50)],
   });
 });
 
@@ -79,3 +68,30 @@ const arc = new shapes.Arc({
 // });
 
 scene.append(arc);
+
+const ring = new shapes.Ring({
+  pos: [400, 50],
+  background: "yellow",
+  innerRadius: 20,
+  outerRadius: 40,
+  startAngle: 0,
+  endAngle: 0.5 * Math.PI,
+});
+
+// ring.addEventListener("click", () => {
+//   arc.setAttrs({
+//     pos: [random(50), random(50)],
+//   });
+// });
+
+// scene.append(ring);
+
+const run = () => {
+  rect.setAttrs({
+    borderRadius: [random(50), random(50), random(50), random(50)],
+    background: 'red'
+  });
+  scene.update();
+  requestAnimationFrame(run);
+};
+run();
