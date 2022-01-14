@@ -5,6 +5,9 @@ const isArr = Array.isArray;
 function errorHandler$1(msg) {
   throw new Error(msg);
 }
+const PI = Math.PI;
+const PI2 = Math.PI * 2;
+const RADIAN = PI / 180;
 const EVENT_SET = new Set(["click", "mousemove", "mouseenter", "mouseleave"]);
 
 function isFn(fn) {
@@ -632,7 +635,31 @@ class Arc extends Shape {
     this.name = "$$arc";
   }
 
-  createPath() {}
+  createPath() {
+    this.paths = [];
+    let {
+      pos,
+      radius,
+      startAngle,
+      endAngle,
+      close
+    } = this.attrs;
+    const [x, y] = pos;
+    startAngle = RADIAN * startAngle;
+    endAngle = RADIAN * endAngle;
+
+    if (close) {
+      this.paths.push({
+        type: "moveTo",
+        args: [x, y]
+      });
+    }
+
+    this.paths.push({
+      type: "arc",
+      args: [x, y, radius, startAngle, endAngle, false]
+    });
+  }
   /**
    * @param  {MouseEvent} event
    */
@@ -645,26 +672,21 @@ class Arc extends Shape {
 
   renderPath(ctx) {
     ctx.beginPath();
-    const {
-      pos,
-      radius,
-      startAngle,
-      endAngle,
+    let {
       background,
-      opacity,
-      close
+      opacity
     } = this.attrs;
-    const [x, y] = pos;
 
     if (isNumber(opacity)) {
       ctx.globalAlpha = opacity;
     }
 
-    if (close) {
-      ctx.moveTo(x, y);
-    }
-
-    ctx.arc(x, y, radius, startAngle, endAngle, false);
+    this.paths.forEach(({
+      type,
+      args
+    }) => {
+      ctx[type](...args);
+    });
 
     if (background) {
       ctx.fillStyle = background;
@@ -681,7 +703,38 @@ class Ring extends Shape {
     this.name = "$$ring";
   }
 
-  createPath() {}
+  createPath() {
+    this.paths = [];
+    let {
+      pos,
+      innerRadius,
+      outerRadius,
+      startAngle,
+      endAngle
+    } = this.attrs;
+    const [x, y] = pos;
+    startAngle = RADIAN * startAngle;
+    endAngle = RADIAN * endAngle;
+    this.paths.push({
+      type: "arc",
+      args: [x, y, outerRadius, startAngle, endAngle, false]
+    });
+
+    if (innerRadius > 0) {
+      if (endAngle < startAngle) {
+        endAngle = startAngle + PI2 + (endAngle - startAngle) % PI2;
+      }
+
+      if (endAngle - startAngle >= PI2) {
+        endAngle = startAngle + PI2 - 1e-6;
+      }
+
+      this.paths.push({
+        type: "arc",
+        args: [x, y, innerRadius, endAngle, startAngle, true]
+      });
+    }
+  }
   /**
    * @param  {MouseEvent} event
    */
@@ -694,25 +747,22 @@ class Ring extends Shape {
 
   renderPath(ctx) {
     ctx.beginPath();
-    const {
-      pos,
-      innerRadius,
-      outerRadius,
-      startAngle,
-      endAngle,
+    let {
       background,
       opacity
     } = this.attrs;
-    const [x, y] = pos;
 
     if (isNumber(opacity)) {
       ctx.globalAlpha = opacity;
     }
 
-    ctx.moveTo(x + innerRadius, y);
-    ctx.arc(x, y, innerRadius, startAngle, endAngle, false);
-    ctx.moveTo(x + outerRadius, y);
-    ctx.arc(x, y, outerRadius, startAngle, endAngle, true);
+    this.paths.forEach(({
+      type,
+      args
+    }) => {
+      ctx[type](...args);
+    });
+    ctx.closePath();
 
     if (background) {
       ctx.fillStyle = background;

@@ -1,49 +1,55 @@
-import { isNumber, RADIAN } from "../tools/base";
+import { isNumber, PI, PI2, RADIAN } from "../tools/base";
 import Shape from "./shape";
 
-class Arc extends Shape {
+class Ring extends Shape {
   constructor(args) {
     super(args);
-    this.name = "$$arc";
+    this.name = "$$ring";
   }
 
   createPath() {
     this.paths = [];
-    let { pos, radius, startAngle, endAngle, close } = this.attrs;
+    let { pos, innerRadius, outerRadius, startAngle, endAngle } = this.attrs;
     const [x, y] = pos;
     startAngle = RADIAN * startAngle;
     endAngle = RADIAN * endAngle;
-
-    if (close) {
-      this.paths.push({
-        type: "moveTo",
-        args: [x, y],
-      });
-    }
+    
     this.paths.push({
       type: "arc",
-      args: [x, y, radius, startAngle, endAngle, false],
+      args: [x, y, outerRadius, startAngle, endAngle, false],
     });
+    if (innerRadius > 0) {
+      if (endAngle < startAngle) {
+        endAngle = startAngle + PI2 + ((endAngle - startAngle) % PI2);
+      }
+      if (endAngle - startAngle >= PI2) {
+        endAngle = startAngle + PI2 - 1e-6;
+      }
+      this.paths.push({
+        type: "arc",
+        args: [x, y, innerRadius, endAngle, startAngle, true],
+      });
+    }
   }
 
   /**
    * @param  {MouseEvent} event
    */
   isPointInPath(event) {
-    // TODO: 扇形边界
+    // TODO: 圆环边界
     return true;
   }
 
   renderPath(ctx) {
     ctx.beginPath();
     let { background, opacity } = this.attrs;
-
     if (isNumber(opacity)) {
       ctx.globalAlpha = opacity;
     }
     this.paths.forEach(({ type, args }) => {
       ctx[type](...args);
     });
+    ctx.closePath();
     if (background) {
       ctx.fillStyle = background;
       ctx.fill();
@@ -52,4 +58,4 @@ class Arc extends Shape {
   }
 }
 
-export default Arc;
+export default Ring;
