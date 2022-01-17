@@ -491,6 +491,10 @@ class Shape extends EventDispatcher {
 
 }
 
+const _transformRadius = Symbol("_transformRadius");
+
+const _buildPath = Symbol("_buildPath");
+
 class Rect extends Shape {
   constructor(args) {
     super(args);
@@ -514,7 +518,7 @@ class Rect extends Shape {
         args: [x, y, width, height]
       });
     } else {
-      this._buildPath(x, y, width, height, radius);
+      this[_buildPath](x, y, width, height, radius);
     }
   }
   /**
@@ -544,13 +548,22 @@ class Rect extends Shape {
   renderPath(ctx) {
     ctx.beginPath();
     const {
+      pos,
       background,
       boxShadow,
+      rotate,
       opacity
     } = this.attrs;
+    const [x, y] = pos;
 
     if (isNumber(opacity)) {
       ctx.globalAlpha = opacity;
+    }
+
+    if (rotate) {
+      ctx.translate(x, y);
+      ctx.rotate(rotate * RADIAN);
+      ctx.translate(-x, -y);
     }
 
     if (boxShadow) {
@@ -575,7 +588,7 @@ class Rect extends Shape {
     }
   }
 
-  _transformRadius(r, width, height) {
+  [_transformRadius](r, width, height) {
     var r1;
     var r2;
     var r3;
@@ -633,7 +646,7 @@ class Rect extends Shape {
     return [r1, r2, r3, r4];
   }
 
-  _buildPath(x, y, width, height, r) {
+  [_buildPath](x, y, width, height, r) {
     if (width < 0) {
       x = x + width;
       width = -width;
@@ -644,7 +657,7 @@ class Rect extends Shape {
       height = -height;
     }
 
-    const [r1, r2, r3, r4] = this._transformRadius(r, width, height);
+    const [r1, r2, r3, r4] = this[_transformRadius](r, width, height);
 
     this.paths.push({
       type: "moveTo",
@@ -728,12 +741,21 @@ class Arc extends Shape {
   renderPath(ctx) {
     ctx.beginPath();
     let {
+      pos,
+      rotate,
       background,
       opacity
     } = this.attrs;
+    const [x, y] = pos;
 
     if (isNumber(opacity)) {
       ctx.globalAlpha = opacity;
+    }
+
+    if (rotate) {
+      ctx.translate(x, y);
+      ctx.rotate(rotate * RADIAN);
+      ctx.translate(-x, -y);
     }
 
     this.paths.forEach(({
@@ -817,12 +839,21 @@ class Ring extends Shape {
   renderPath(ctx) {
     ctx.beginPath();
     let {
+      pos,
+      rotate,
       background,
       opacity
     } = this.attrs;
+    const [x, y] = pos;
 
     if (isNumber(opacity)) {
       ctx.globalAlpha = opacity;
+    }
+
+    if (rotate) {
+      ctx.translate(x, y);
+      ctx.rotate(rotate * RADIAN);
+      ctx.translate(-x, -y);
     }
 
     this.paths.forEach(({

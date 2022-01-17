@@ -51,9 +51,15 @@ class Ring extends Shape {
 
   renderPath(ctx) {
     ctx.beginPath();
-    let { background, opacity } = this.attrs;
+    let { pos, rotate, background, opacity } = this.attrs;
+    const [x, y] = pos;
     if (isNumber(opacity)) {
       ctx.globalAlpha = opacity;
+    }
+    if (rotate) {
+      ctx.translate(x, y);
+      ctx.rotate(rotate * RADIAN);
+      ctx.translate(-x, -y);
     }
     this.paths.forEach(({ type, args }) => {
       ctx[type](...args);

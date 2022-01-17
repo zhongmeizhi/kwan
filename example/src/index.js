@@ -30,6 +30,7 @@ const rect = new shapes.Rect({
   size: [40, 40],
   background: "yellow",
   borderRadius: [8],
+  rotate: 30
 });
 
 rect.addEventListener("click", () => {
@@ -59,6 +60,7 @@ const arc = new shapes.Arc({
   startAngle: 30,
   endAngle: 260,
   close: true,
+  rotate: 30
 });
 
 arc.addEventListener("click", () => {
@@ -76,6 +78,7 @@ const ring = new shapes.Ring({
   outerRadius: 40,
   startAngle: 30,
   endAngle: 160,
+  rotate: 30
 });
 
 ring.addEventListener("click", () => {
