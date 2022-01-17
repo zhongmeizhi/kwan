@@ -1,307 +1,15 @@
-function isNumber(v) {
-  return typeof v === "number";
-}
-const isArr = Array.isArray;
-function errorHandler$1(msg) {
-  throw new Error(msg);
-}
-const PI = Math.PI;
-const PI2 = Math.PI * 2;
-const RADIAN = PI / 180;
-const EVENT_SET = new Set(["click", "mousemove", "mouseenter", "mouseleave"]);
+const _getBoundAttr = Symbol("_getBoundAttr");
 
-function isFn(fn) {
-  return typeof fn === "function";
-}
-function errorHandler(msg) {
-  throw new Error(msg);
-}
+const _splitMesh = Symbol("_splitMesh");
 
-class EventDispatcher {
-  constructor() {
-    this.events = {};
-  }
-  /**
-   * @param  {String} type
-   * @param  {Function} listener
-   */
-
-
-  addEventListener(type, listener) {
-    if (!isFn(listener)) return errorHandler("监听对象不是一个函数");
-    if (!EVENT_SET.has(type)) return;
-
-    if (!this.events[type]) {
-      this.events[type] = new Set();
-    }
-
-    this.events[type].add(listener);
-  }
-  /**
-   * @param  {String type
-   */
-
-
-  dispatchEvent(type, argv) {
-    if (this.events[type]) {
-      this.events[type].forEach(listener => listener.call(this, argv));
-    }
-  }
-  /**
-   * @param  {String} type
-   * @param  {Function} listener
-   */
-
-
-  removeEventListener(type, listener) {
-    if (!this.events[type]) return;
-
-    if (this.events[type] && listener) {
-      if (this.events[type].size === 1) {
-        delete this.events[type];
-      } else {
-        this.events[type].delete(listener);
-      }
-    } else {
-      // remove all
-      delete this.events[type];
-    }
-  }
-
-}
-
-class Shape extends EventDispatcher {
-  constructor(attrs) {
-    super(); // TODO: 入参校验
-
-    this.attrs = attrs;
-    this.meshes = [];
-    this.type == "$$shape";
-    this.createPath();
-  }
-
-  setAttrs(newAttrs = {}) {
-    // TODO: 入参校验
-    this.attrs = Object.assign({}, this.attrs, newAttrs);
-
-    if (newAttrs.pos || newAttrs.size || newAttrs.borderRadius) {
-      this.createPath();
-    }
-
-    this.meshes.forEach(mesh => mesh.setDirty(true));
-  }
-
-  bindMeshes(mesh) {
-    this.meshes.push(mesh);
-  }
-
-  createPath() {
-    errorHandler$1("render 需要被重写");
-  }
-
-  isPointInPath() {
-    errorHandler$1("isPointInPath 需要被重写");
-  }
-
-  renderPath() {
-    errorHandler$1("renderPath 需要被重写");
-  }
-
-  draw(ctx) {
-    ctx.save();
-    this.renderPath(ctx);
-    ctx.restore();
-    this.isDirty = false;
-  }
-
-}
-
-class Rect extends Shape {
-  constructor(args) {
-    super(args);
-    this.name = "$$rect";
-  }
-
-  createPath() {
-    this.paths = [];
-    const {
-      pos,
-      size,
-      borderRadius
-    } = this.attrs;
-    const [x, y] = pos;
-    const [width, height] = size;
-    const radius = borderRadius || 0;
-
-    if (!radius) {
-      this.paths.push({
-        type: "rect",
-        args: [x, y, width, height]
-      });
-    } else {
-      this._buildPath(x, y, width, height, radius);
-    }
-  }
-  /**
-   * @param  {MouseEvent} event
-   */
-
-
-  isPointInPath(event) {
-    const {
-      offsetX,
-      offsetY
-    } = event;
-    const {
-      pos,
-      border,
-      size
-    } = this.attrs;
-    const [x, y] = pos;
-    const [width, height] = size;
-
-    if (offsetX > x && offsetX < x + width && offsetY > y && offsetY < y + height) {
-      return true;
-    }
-
-    return false;
-  }
-
-  renderPath(ctx) {
-    ctx.beginPath();
-    const {
-      background,
-      boxShadow,
-      opacity
-    } = this.attrs;
-
-    if (isNumber(opacity)) {
-      ctx.globalAlpha = opacity;
-    }
-
-    if (boxShadow) {
-      const [shadowColor, x, y, blur] = boxShadow;
-      ctx.shadowColor = shadowColor;
-      ctx.shadowOffsetX = x;
-      ctx.shadowOffsetY = y;
-      ctx.shadowBlur = blur;
-    }
-
-    this.paths.forEach(({
-      type,
-      args
-    }) => {
-      ctx[type](...args);
-    });
-    ctx.closePath();
-
-    if (background) {
-      ctx.fillStyle = background;
-      ctx.fill();
-    }
-  }
-
-  _transformRadius(r, width, height) {
-    var r1;
-    var r2;
-    var r3;
-    var r4; // 支持形式的 radius 入参
-
-    if (isNumber(r)) {
-      r1 = r2 = r3 = r4 = r;
-    } else if (isArr(r)) {
-      if (r.length === 1) {
-        r1 = r2 = r3 = r4 = r[0];
-      } else if (r.length === 2) {
-        r1 = r3 = r[0];
-        r2 = r4 = r[1];
-      } else if (r.length === 3) {
-        r1 = r[0];
-        r2 = r4 = r[1];
-        r3 = r[2];
-      } else {
-        r1 = r[0];
-        r2 = r[1];
-        r3 = r[2];
-        r4 = r[3];
-      }
-    } else {
-      r1 = r2 = r3 = r4 = 0;
-    } // 边界值矫正
-
-
-    var total;
-
-    if (r1 + r2 > width) {
-      total = r1 + r2;
-      r1 *= width / total;
-      r2 *= width / total;
-    }
-
-    if (r3 + r4 > width) {
-      total = r3 + r4;
-      r3 *= width / total;
-      r4 *= width / total;
-    }
-
-    if (r2 + r3 > height) {
-      total = r2 + r3;
-      r2 *= height / total;
-      r3 *= height / total;
-    }
-
-    if (r1 + r4 > height) {
-      total = r1 + r4;
-      r1 *= height / total;
-      r4 *= height / total;
-    }
-
-    return [r1, r2, r3, r4];
-  }
-
-  _buildPath(x, y, width, height, r) {
-    if (width < 0) {
-      x = x + width;
-      width = -width;
-    }
-
-    if (height < 0) {
-      y = y + height;
-      height = -height;
-    }
-
-    const [r1, r2, r3, r4] = this._transformRadius(r, width, height);
-
-    this.paths.push({
-      type: "moveTo",
-      args: [x + r1, y]
-    });
-    this.paths.push({
-      type: "arcTo",
-      args: [x + width, y, x + width, y + r2, r2]
-    });
-    this.paths.push({
-      type: "arcTo",
-      args: [x + width, y + height, x + width - r3, y + height, r3]
-    });
-    this.paths.push({
-      type: "arcTo",
-      args: [x, y + height, x, y + height - r4, r4]
-    });
-    this.paths.push({
-      type: "arcTo",
-      args: [x, y, x + r1, y, r1]
-    });
-  }
-
-}
-
+const _getIndex = Symbol("_getIndex");
 /**
  * @param  {pRect} pRect={x,y,width,height}
  * @param  {number} max_objects=10
  * @param  {number} max_levels=4
  * @param  {number} level=0
  */
+
 
 class Mesh {
   constructor(pRect, max_objects = 10, max_levels = 4, level = 0) {
@@ -338,7 +46,7 @@ class Mesh {
         indexes; // 如果有子mesh则插入最下层mesh
 
     if (this.children.length) {
-      indexes = this._getIndex(shape);
+      indexes = this[_getIndex](shape);
 
       for (i = 0; i < indexes.length; i++) {
         this.children[indexes[i]].append(shape);
@@ -351,11 +59,11 @@ class Mesh {
 
     if (this.shapes.length > this.max_objects && this.level < this.max_levels && (this.bounds.width >= 128 || this.bounds.height >= 128)) {
       if (!this.children.length) {
-        this._splitMesh();
+        this[_splitMesh]();
       }
 
       for (i = 0; i < this.shapes.length; i++) {
-        indexes = this._getIndex(this.shapes[i]);
+        indexes = this[_getIndex](this.shapes[i]);
 
         for (let k = 0; k < indexes.length; k++) {
           this.children[indexes[k]].append(this.shapes[i]);
@@ -367,8 +75,31 @@ class Mesh {
       shape.bindMeshes(this);
     }
   }
+  /**
+   * @param  {} shape
+   */
 
-  _getBoundAttr(bound) {
+
+  retrieve(shape) {
+    const indexes = this[_getIndex](shape);
+
+    let returnShapes = this.shapes;
+
+    if (this.children.length) {
+      for (let i = 0; i < indexes.length; i++) {
+        returnShapes = returnShapes.concat(this.children[indexes[i]].retrieve(shape));
+      }
+    } // TODO: 优化查找算法
+
+
+    returnShapes = returnShapes.filter(function (item, index) {
+      return returnShapes.indexOf(item) >= index;
+    });
+    return returnShapes;
+  } // 边界盒子统一获取方法
+
+
+  [_getBoundAttr](bound) {
     let result = { ...bound.attrs
     };
 
@@ -380,7 +111,7 @@ class Mesh {
     return result;
   }
 
-  _splitMesh() {
+  [_splitMesh]() {
     let nextLevel = this.level + 1;
     const {
       x,
@@ -423,11 +154,11 @@ class Mesh {
    */
 
 
-  _getIndex(shape) {
+  [_getIndex](shape) {
     const {
       pos,
       size
-    } = this._getBoundAttr(shape);
+    } = this[_getBoundAttr](shape);
 
     const [x, y] = pos;
     const [width, height] = size;
@@ -597,12 +328,21 @@ class Scene {
     }
   }
 
-  getAllShapes() {
-    return this.mesh.allShapeSet;
+  queryMesh(x, y, blur = 2) {
+    return this.mesh.retrieve({
+      attrs: {
+        pos: [x, y],
+        size: [blur, blur]
+      }
+    });
   }
 
   onClick(event) {
-    this.getAllShapes().forEach(shape => {
+    const {
+      offsetX,
+      offsetY
+    } = event;
+    this.queryMesh(offsetX, offsetY).forEach(shape => {
       if (shape.events["click"] && shape.isPointInPath(event)) {
         shape.dispatchEvent("click");
       }
@@ -610,7 +350,11 @@ class Scene {
   }
 
   onMouseMove(event) {
-    this.getAllShapes().forEach(shape => {
+    const {
+      offsetX,
+      offsetY
+    } = event;
+    this.queryMesh(offsetX, offsetY).forEach(shape => {
       if (shape.events["mousemove"] || shape.events["mouseenter"] || shape.events["mouseleave"]) {
         if (shape.isPointInPath(event)) {
           if (!this.hoverShapeSet.has(shape)) {
@@ -624,6 +368,303 @@ class Scene {
           this.hoverShapeSet.delete(shape);
         }
       }
+    });
+  }
+
+}
+
+function isFn(fn) {
+  return typeof fn === "function";
+}
+function errorHandler$1(msg) {
+  throw new Error(msg);
+}
+
+function isNumber(v) {
+  return typeof v === "number";
+}
+const isArr = Array.isArray;
+function errorHandler(msg) {
+  throw new Error(msg);
+}
+const PI = Math.PI;
+const PI2 = Math.PI * 2;
+const RADIAN = PI / 180;
+const EVENT_SET = new Set(["click", "mousemove", "mouseenter", "mouseleave"]);
+
+class EventDispatcher {
+  constructor() {
+    this.events = {};
+  }
+  /**
+   * @param  {String} type
+   * @param  {Function} listener
+   */
+
+
+  addEventListener(type, listener) {
+    if (!isFn(listener)) return errorHandler$1("监听对象不是一个函数");
+    if (!EVENT_SET.has(type)) return;
+
+    if (!this.events[type]) {
+      this.events[type] = new Set();
+    }
+
+    this.events[type].add(listener);
+  }
+  /**
+   * @param  {String type
+   */
+
+
+  dispatchEvent(type, argv) {
+    if (this.events[type]) {
+      this.events[type].forEach(listener => listener.call(this, argv));
+    }
+  }
+  /**
+   * @param  {String} type
+   * @param  {Function} listener
+   */
+
+
+  removeEventListener(type, listener) {
+    if (!this.events[type]) return;
+
+    if (this.events[type] && listener) {
+      if (this.events[type].size === 1) {
+        delete this.events[type];
+      } else {
+        this.events[type].delete(listener);
+      }
+    } else {
+      // remove all
+      delete this.events[type];
+    }
+  }
+
+}
+
+class Shape extends EventDispatcher {
+  constructor(attrs) {
+    super(); // TODO: 入参校验
+
+    this.attrs = attrs;
+    this.meshes = [];
+    this.type == "$$shape";
+    this.createPath();
+  }
+
+  setAttrs(newAttrs = {}) {
+    // TODO: 入参校验
+    this.attrs = Object.assign({}, this.attrs, newAttrs);
+
+    if (newAttrs.pos || newAttrs.size || newAttrs.borderRadius) {
+      this.createPath();
+    }
+
+    this.meshes.forEach(mesh => mesh.setDirty(true));
+  }
+
+  bindMeshes(mesh) {
+    this.meshes.push(mesh);
+  }
+
+  createPath() {
+    errorHandler("render 需要被重写");
+  }
+
+  isPointInPath() {
+    errorHandler("isPointInPath 需要被重写");
+  }
+
+  renderPath() {
+    errorHandler("renderPath 需要被重写");
+  }
+
+  draw(ctx) {
+    ctx.save();
+    this.renderPath(ctx);
+    ctx.restore();
+    this.isDirty = false;
+  }
+
+}
+
+class Rect extends Shape {
+  constructor(args) {
+    super(args);
+    this.name = "$$rect";
+  }
+
+  createPath() {
+    this.paths = [];
+    const {
+      pos,
+      size,
+      borderRadius
+    } = this.attrs;
+    const [x, y] = pos;
+    const [width, height] = size;
+    const radius = borderRadius || 0;
+
+    if (!radius) {
+      this.paths.push({
+        type: "rect",
+        args: [x, y, width, height]
+      });
+    } else {
+      this._buildPath(x, y, width, height, radius);
+    }
+  }
+  /**
+   * @param  {MouseEvent} event
+   */
+
+
+  isPointInPath(event) {
+    const {
+      offsetX,
+      offsetY
+    } = event;
+    const {
+      pos,
+      size
+    } = this.attrs;
+    const [x, y] = pos;
+    const [width, height] = size; // TODO: 优化弧形点击
+
+    if (offsetX > x && offsetX < x + width && offsetY > y && offsetY < y + height) {
+      return true;
+    }
+
+    return false;
+  }
+
+  renderPath(ctx) {
+    ctx.beginPath();
+    const {
+      background,
+      boxShadow,
+      opacity
+    } = this.attrs;
+
+    if (isNumber(opacity)) {
+      ctx.globalAlpha = opacity;
+    }
+
+    if (boxShadow) {
+      const [shadowColor, x, y, blur] = boxShadow;
+      ctx.shadowColor = shadowColor;
+      ctx.shadowOffsetX = x;
+      ctx.shadowOffsetY = y;
+      ctx.shadowBlur = blur;
+    }
+
+    this.paths.forEach(({
+      type,
+      args
+    }) => {
+      ctx[type](...args);
+    });
+    ctx.closePath();
+
+    if (background) {
+      ctx.fillStyle = background;
+      ctx.fill();
+    }
+  }
+
+  _transformRadius(r, width, height) {
+    var r1;
+    var r2;
+    var r3;
+    var r4; // 支持形式的 radius 入参
+
+    if (isNumber(r)) {
+      r1 = r2 = r3 = r4 = r;
+    } else if (isArr(r)) {
+      if (r.length === 1) {
+        r1 = r2 = r3 = r4 = r[0];
+      } else if (r.length === 2) {
+        r1 = r3 = r[0];
+        r2 = r4 = r[1];
+      } else if (r.length === 3) {
+        r1 = r[0];
+        r2 = r4 = r[1];
+        r3 = r[2];
+      } else {
+        r1 = r[0];
+        r2 = r[1];
+        r3 = r[2];
+        r4 = r[3];
+      }
+    } else {
+      r1 = r2 = r3 = r4 = 0;
+    } // 边界值矫正
+
+
+    var total;
+
+    if (r1 + r2 > width) {
+      total = r1 + r2;
+      r1 *= width / total;
+      r2 *= width / total;
+    }
+
+    if (r3 + r4 > width) {
+      total = r3 + r4;
+      r3 *= width / total;
+      r4 *= width / total;
+    }
+
+    if (r2 + r3 > height) {
+      total = r2 + r3;
+      r2 *= height / total;
+      r3 *= height / total;
+    }
+
+    if (r1 + r4 > height) {
+      total = r1 + r4;
+      r1 *= height / total;
+      r4 *= height / total;
+    }
+
+    return [r1, r2, r3, r4];
+  }
+
+  _buildPath(x, y, width, height, r) {
+    if (width < 0) {
+      x = x + width;
+      width = -width;
+    }
+
+    if (height < 0) {
+      y = y + height;
+      height = -height;
+    }
+
+    const [r1, r2, r3, r4] = this._transformRadius(r, width, height);
+
+    this.paths.push({
+      type: "moveTo",
+      args: [x + r1, y]
+    });
+    this.paths.push({
+      type: "arcTo",
+      args: [x + width, y, x + width, y + r2, r2]
+    });
+    this.paths.push({
+      type: "arcTo",
+      args: [x + width, y + height, x + width - r3, y + height, r3]
+    });
+    this.paths.push({
+      type: "arcTo",
+      args: [x, y + height, x, y + height - r4, r4]
+    });
+    this.paths.push({
+      type: "arcTo",
+      args: [x, y, x + r1, y, r1]
     });
   }
 
@@ -667,7 +708,21 @@ class Arc extends Shape {
 
   isPointInPath(event) {
     // TODO: 扇形边界
-    return true;
+    const {
+      offsetX,
+      offsetY
+    } = event;
+    const {
+      pos,
+      radius
+    } = this.attrs;
+    const [x, y] = pos;
+
+    if (Math.sqrt(Math.pow(x - offsetX, 2) + Math.pow(y - offsetY, 2)) <= radius) {
+      return true;
+    }
+
+    return false;
   }
 
   renderPath(ctx) {
@@ -741,8 +796,22 @@ class Ring extends Shape {
 
 
   isPointInPath(event) {
-    // TODO: 圆环边界
-    return true;
+    // TODO: 环形边界
+    const {
+      offsetX,
+      offsetY
+    } = event;
+    const {
+      pos,
+      outerRadius
+    } = this.attrs;
+    const [x, y] = pos;
+
+    if (Math.sqrt(Math.pow(x - offsetX, 2) + Math.pow(y - offsetY, 2)) <= outerRadius) {
+      return true;
+    }
+
+    return false;
   }
 
   renderPath(ctx) {

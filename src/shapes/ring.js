@@ -13,7 +13,7 @@ class Ring extends Shape {
     const [x, y] = pos;
     startAngle = RADIAN * startAngle;
     endAngle = RADIAN * endAngle;
-    
+
     this.paths.push({
       type: "arc",
       args: [x, y, outerRadius, startAngle, endAngle, false],
@@ -36,8 +36,17 @@ class Ring extends Shape {
    * @param  {MouseEvent} event
    */
   isPointInPath(event) {
-    // TODO: 圆环边界
-    return true;
+    // TODO: 环形边界
+    const { offsetX, offsetY } = event;
+    const { pos, outerRadius } = this.attrs;
+    const [x, y] = pos;
+    if (
+      Math.sqrt(Math.pow(x - offsetX, 2) + Math.pow(y - offsetY, 2)) <=
+      outerRadius
+    ) {
+      return true;
+    }
+    return false;
   }
 
   renderPath(ctx) {

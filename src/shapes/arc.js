@@ -31,7 +31,15 @@ class Arc extends Shape {
    */
   isPointInPath(event) {
     // TODO: 扇形边界
-    return true;
+    const { offsetX, offsetY } = event;
+    const { pos, radius } = this.attrs;
+    const [x, y] = pos;
+    if (
+      Math.sqrt(Math.pow(x - offsetX, 2) + Math.pow(y - offsetY, 2)) <= radius
+    ) {
+      return true;
+    }
+    return false;
   }
 
   renderPath(ctx) {

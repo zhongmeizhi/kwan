@@ -1,5 +1,6 @@
-import { isFn } from "../tools/base";
-import Rect from "../shapes/rect";
+const _getBoundAttr = Symbol("_getBoundAttr");
+const _splitMesh = Symbol("_splitMesh");
+const _getIndex = Symbol("_getIndex");
 
 /**
  * @param  {pRect} pRect={x,y,width,height}
@@ -40,7 +41,7 @@ class Mesh {
       indexes;
     // 如果有子mesh则插入最下层mesh
     if (this.children.length) {
-      indexes = this._getIndex(shape);
+      indexes = this[_getIndex](shape);
       for (i = 0; i < indexes.length; i++) {
         this.children[indexes[i]].append(shape);
       }
@@ -55,10 +56,10 @@ class Mesh {
       (this.bounds.width >= 128 || this.bounds.height >= 128)
     ) {
       if (!this.children.length) {
-        this._splitMesh();
+        this[_splitMesh]();
       }
       for (i = 0; i < this.shapes.length; i++) {
-        indexes = this._getIndex(this.shapes[i]);
+        indexes = this[_getIndex](this.shapes[i]);
         for (let k = 0; k < indexes.length; k++) {
           this.children[indexes[k]].append(this.shapes[i]);
         }
@@ -69,7 +70,32 @@ class Mesh {
     }
   }
 
-  _getBoundAttr(bound) {
+  /**
+   * @param  {} shape
+   */
+  retrieve(shape) {
+    const indexes = this[_getIndex](shape);
+
+    let returnShapes = this.shapes;
+
+    if (this.children.length) {
+      for (let i = 0; i < indexes.length; i++) {
+        returnShapes = returnShapes.concat(
+          this.children[indexes[i]].retrieve(shape)
+        );
+      }
+    }
+
+    // TODO: 优化查找算法
+    returnShapes = returnShapes.filter(function (item, index) {
+      return returnShapes.indexOf(item) >= index;
+    });
+
+    return returnShapes;
+  }
+
+  // 边界盒子统一获取方法
+  [_getBoundAttr](bound) {
     let result = { ...bound.attrs };
     if (result.radius) {
       const diameter = result.radius * 2;
@@ -79,7 +105,7 @@ class Mesh {
     return result;
   }
 
-  _splitMesh() {
+  [_splitMesh]() {
     let nextLevel = this.level + 1;
     const { x, y, width, height } = this.bounds;
     let subWidth = width / 2;
@@ -120,8 +146,8 @@ class Mesh {
    * @param {Shape} shape
    * @return {number[]}
    */
-  _getIndex(shape) {
-    const { pos, size } = this._getBoundAttr(shape);
+  [_getIndex](shape) {
+    const { pos, size } = this[_getBoundAttr](shape);
     const [x, y] = pos;
     const [width, height] = size;
     let indexes = [],

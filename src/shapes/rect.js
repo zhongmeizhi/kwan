@@ -28,9 +28,10 @@ class Rect extends Shape {
    */
   isPointInPath(event) {
     const { offsetX, offsetY } = event;
-    const { pos, border, size } = this.attrs;
+    const { pos, size } = this.attrs;
     const [x, y] = pos;
     const [width, height] = size;
+    // TODO: 优化弧形点击
     if (
       offsetX > x &&
       offsetX < x + width &&

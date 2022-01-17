@@ -116,12 +116,15 @@ class Scene {
     }
   }
 
-  getAllShapes() {
-    return this.mesh.allShapeSet;
+  queryMesh(x, y, blur = 2) {
+    return this.mesh.retrieve({
+      attrs: { pos: [x, y], size: [blur, blur] },
+    });
   }
 
   onClick(event) {
-    this.getAllShapes().forEach((shape) => {
+    const { offsetX, offsetY } = event;
+    this.queryMesh(offsetX, offsetY).forEach((shape) => {
       if (shape.events["click"] && shape.isPointInPath(event)) {
         shape.dispatchEvent("click");
       }
@@ -129,7 +132,8 @@ class Scene {
   }
 
   onMouseMove(event) {
-    this.getAllShapes().forEach((shape) => {
+    const { offsetX, offsetY } = event;
+    this.queryMesh(offsetX, offsetY).forEach((shape) => {
       if (
         shape.events["mousemove"] ||
         shape.events["mouseenter"] ||

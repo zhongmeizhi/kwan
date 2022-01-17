@@ -25,47 +25,47 @@ const scene = new Scene(ele, {
 // );
 // arr.forEach((a) => scene.append(a));
 
-// const rect = new shapes.Rect({
-//   pos: [280, 130],
-//   size: [40, 40],
-//   background: "yellow",
-//   borderRadius: [8],
-// });
+const rect = new shapes.Rect({
+  pos: [280, 130],
+  size: [40, 40],
+  background: "yellow",
+  borderRadius: [8],
+});
 
-// rect.addEventListener("click", () => {
-//   rect.setAttrs({
-//     borderRadius: [random(50), random(50), random(50), random(50)],
-//   });
-// });
+rect.addEventListener("click", () => {
+  rect.setAttrs({
+    borderRadius: [random(50), random(50), random(50), random(50)],
+  });
+});
 
-// rect.addEventListener("mouseenter", () => {
-//   rect.setAttrs({
-//     background: "red",
-//   });
-// });
+rect.addEventListener("mouseenter", () => {
+  rect.setAttrs({
+    background: "red",
+  });
+});
 
-// rect.addEventListener("mouseleave", () => {
-//   rect.setAttrs({
-//     background: "yellow",
-//   });
-// });
+rect.addEventListener("mouseleave", () => {
+  rect.setAttrs({
+    background: "yellow",
+  });
+});
 
-// scene.append(rect);
+scene.append(rect);
 
-// const arc = new shapes.Arc({
-//   pos: [100, 50],
-//   background: "yellow",
-//   radius: 30,
-//   startAngle: 30,
-//   endAngle: 260,
-//   close: true,
-// });
+const arc = new shapes.Arc({
+  pos: [100, 50],
+  background: "yellow",
+  radius: 30,
+  startAngle: 30,
+  endAngle: 260,
+  close: true,
+});
 
-// arc.addEventListener("click", () => {
-//   arc.setAttrs({
-//     pos: [random(100), random(50)],
-//   });
-// });
+arc.addEventListener("click", () => {
+  arc.setAttrs({
+    pos: [random(100), random(50)],
+  });
+});
 
 scene.append(arc);
 
