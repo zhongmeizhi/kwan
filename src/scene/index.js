@@ -68,44 +68,48 @@ class Scene {
     return true;
   }
 
-  update() {
-    if (this.mesh.isDirty) {
-      const boundBox = [];
-      const updateStack = [this.mesh];
-      while (updateStack.length) {
-        const item = updateStack.pop();
-        item.isDirty = false;
-        const children = item.children;
-        // 容器元素收录
-        if (item.shapes.length) {
-          boundBox.push(item);
-          continue;
-        }
-        if (this.isMergeMesh(item)) {
-          // 块合并
-          boundBox.push(item);
-          const cleanStack = [item];
-          while (cleanStack.length) {
-            const sub = cleanStack.pop();
-            const children = sub.children;
-            for (let i = children.length - 1; i >= 0; i--) {
-              children[i].isDirty = false;
-              cleanStack.push(children[i]);
-            }
-          }
-        } else {
+  getUpdateBoundBox() {
+    const boundBox = [];
+    const updateStack = [this.mesh];
+    while (updateStack.length) {
+      const item = updateStack.pop();
+      item.isDirty = false;
+      const children = item.children;
+      // 容器元素收录
+      if (item.shapes.length) {
+        boundBox.push(item);
+        continue;
+      }
+      if (this.isMergeMesh(item)) {
+        // 块合并
+        boundBox.push(item);
+        const cleanStack = [item];
+        while (cleanStack.length) {
+          const sub = cleanStack.pop();
+          const children = sub.children;
           for (let i = children.length - 1; i >= 0; i--) {
-            const child = children[i];
-            if (child.isDirty) {
-              updateStack.push(child);
-            }
+            children[i].isDirty = false;
+            cleanStack.push(children[i]);
+          }
+        }
+      } else {
+        for (let i = children.length - 1; i >= 0; i--) {
+          const child = children[i];
+          if (child.isDirty) {
+            updateStack.push(child);
           }
         }
       }
-      boundBox.forEach((box) => {
+    }
+    return boundBox;
+  }
+
+  update() {
+    if (this.mesh.isDirty) {
+      this.getUpdateBoundBox().forEach((box) => {
         const { x, y, width, height } = box.bounds;
-        this.ctx.save();
         this.clear(x, y, width, height);
+        this.ctx.save();
         this.ctx.rect(x, y, width, height);
         this.ctx.clip();
         box.allShapeSet.forEach((shape) => {

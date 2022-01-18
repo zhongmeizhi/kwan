@@ -14,16 +14,16 @@ const scene = new Scene(ele, {
   // hd: false
 });
 
-// const arr = new Array(1000).fill(0).map(
-//   () =>
-//     new shapes.Rect({
-//       pos: [random(500), random(500)],
-//       background: "yellow",
-//       size: [20, 20],
-//       // borderRadius: [8],
-//     })
-// );
-// arr.forEach((a) => scene.append(a));
+const arr = new Array(0).fill(0).map(
+  () =>
+    new shapes.Rect({
+      pos: [random(500), random(500)],
+      size: [20, 20],
+      background: "yellow",
+      // borderRadius: [8],
+    })
+);
+scene.append(...arr)
 
 const rect = new shapes.Rect({
   pos: [280, 130],
@@ -129,14 +129,18 @@ const subRing = new shapes.Ring({
 
 group.append(subRect, subArc, subRing)
 
-// scene.append(rect,arc, ring, group)
-scene.append(group)
+scene.append(rect,arc, ring, group)
 
 const run = () => {
-  // rect.setAttrs({
-  //   borderRadius: [random(50), random(50), random(50), random(50)],
-  //   background: 'red'
-  // });
+  rect.setAttrs({
+    borderRadius: [random(50), random(50), random(50), random(50)],
+    background: 'red'
+  });
+  arr.forEach(a => {
+    a.setAttrs({
+      pos: [random(500), random(500)],
+    })
+  })
   scene.update();
   requestAnimationFrame(run);
 };

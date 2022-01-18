@@ -15,6 +15,9 @@ class Arc extends Node {
     startAngle = RADIAN * startAngle;
     endAngle = RADIAN * endAngle;
 
+    const radius2 = radius * 2;
+    this.attrs.size = [radius2, radius2];
+
     this.setOffsetAnchor()
     if (close) {
       this.paths.push({

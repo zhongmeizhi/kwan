@@ -1,5 +1,3 @@
-const _getBoundAttr = Symbol("_getBoundAttr");
-
 const _splitMesh = Symbol("_splitMesh");
 
 const _getIndex = Symbol("_getIndex");
@@ -96,19 +94,6 @@ class Mesh {
       return returnShapes.indexOf(item) >= index;
     });
     return returnShapes;
-  } // 边界盒子统一获取方法
-
-
-  [_getBoundAttr](bound) {
-    let result = { ...bound.attrs
-    };
-
-    if (result.radius) {
-      const diameter = result.radius * 2;
-      result.size = [diameter, diameter];
-    }
-
-    return result;
   }
 
   [_splitMesh]() {
@@ -158,8 +143,7 @@ class Mesh {
     const {
       pos,
       size
-    } = this[_getBoundAttr](shape);
-
+    } = shape.attrs;
     const [x, y] = pos;
     const [width, height] = size;
     let indexes = [],
@@ -269,55 +253,59 @@ class Scene {
     return true;
   }
 
-  update() {
-    if (this.mesh.isDirty) {
-      const boundBox = [];
-      const updateStack = [this.mesh];
+  getUpdateBoundBox() {
+    const boundBox = [];
+    const updateStack = [this.mesh];
 
-      while (updateStack.length) {
-        const item = updateStack.pop();
-        item.isDirty = false;
-        const children = item.children; // 容器元素收录
+    while (updateStack.length) {
+      const item = updateStack.pop();
+      item.isDirty = false;
+      const children = item.children; // 容器元素收录
 
-        if (item.shapes.length) {
-          boundBox.push(item);
-          continue;
-        }
+      if (item.shapes.length) {
+        boundBox.push(item);
+        continue;
+      }
 
-        if (this.isMergeMesh(item)) {
-          // 块合并
-          boundBox.push(item);
-          const cleanStack = [item];
+      if (this.isMergeMesh(item)) {
+        // 块合并
+        boundBox.push(item);
+        const cleanStack = [item];
 
-          while (cleanStack.length) {
-            const sub = cleanStack.pop();
-            const children = sub.children;
+        while (cleanStack.length) {
+          const sub = cleanStack.pop();
+          const children = sub.children;
 
-            for (let i = children.length - 1; i >= 0; i--) {
-              children[i].isDirty = false;
-              cleanStack.push(children[i]);
-            }
-          }
-        } else {
           for (let i = children.length - 1; i >= 0; i--) {
-            const child = children[i];
+            children[i].isDirty = false;
+            cleanStack.push(children[i]);
+          }
+        }
+      } else {
+        for (let i = children.length - 1; i >= 0; i--) {
+          const child = children[i];
 
-            if (child.isDirty) {
-              updateStack.push(child);
-            }
+          if (child.isDirty) {
+            updateStack.push(child);
           }
         }
       }
+    }
 
-      boundBox.forEach(box => {
+    return boundBox;
+  }
+
+  update() {
+    if (this.mesh.isDirty) {
+      this.getUpdateBoundBox().forEach(box => {
         const {
           x,
           y,
           width,
           height
         } = box.bounds;
-        this.ctx.save();
         this.clear(x, y, width, height);
+        this.ctx.save();
         this.ctx.rect(x, y, width, height);
         this.ctx.clip();
         box.allShapeSet.forEach(shape => {
@@ -833,6 +821,8 @@ class Arc extends Node {
     const [x, y] = pos;
     startAngle = RADIAN * startAngle;
     endAngle = RADIAN * endAngle;
+    const radius2 = radius * 2;
+    this.attrs.size = [radius2, radius2];
     this.setOffsetAnchor();
 
     if (close) {
@@ -916,6 +906,8 @@ class Ring extends Node {
     const [x, y] = pos;
     startAngle = RADIAN * startAngle;
     endAngle = RADIAN * endAngle;
+    const radius2 = outerRadius * 2;
+    this.attrs.size = [radius2, radius2];
     this.setOffsetAnchor();
     this.paths.push({
       type: "arc",

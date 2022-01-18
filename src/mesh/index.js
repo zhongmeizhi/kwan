@@ -1,4 +1,3 @@
-const _getBoundAttr = Symbol("_getBoundAttr");
 const _splitMesh = Symbol("_splitMesh");
 const _getIndex = Symbol("_getIndex");
 
@@ -94,17 +93,6 @@ class Mesh {
     return returnShapes;
   }
 
-  // 边界盒子统一获取方法
-  [_getBoundAttr](bound) {
-    let result = { ...bound.attrs };
-    if (result.radius) {
-      const diameter = result.radius * 2;
-      result.size = [diameter, diameter];
-    } else {
-    }
-    return result;
-  }
-
   [_splitMesh]() {
     let nextLevel = this.level + 1;
     const { x, y, width, height } = this.bounds;
@@ -147,7 +135,7 @@ class Mesh {
    * @return {number[]}
    */
   [_getIndex](shape) {
-    const { pos, size } = this[_getBoundAttr](shape);
+    const { pos, size } = shape.attrs;
     const [x, y] = pos;
     const [width, height] = size;
     let indexes = [],

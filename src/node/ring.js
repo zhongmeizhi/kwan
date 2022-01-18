@@ -15,6 +15,9 @@ class Ring extends Node {
     startAngle = RADIAN * startAngle;
     endAngle = RADIAN * endAngle;
 
+    const radius2 = outerRadius * 2
+    this.attrs.size = [radius2, radius2]
+
     this.setOffsetAnchor()
     this.paths.push({
       type: "arc",
