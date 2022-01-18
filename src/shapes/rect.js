@@ -1,5 +1,5 @@
 import Shape from "./shape";
-import { isArr, isNumber, RADIAN } from "../tools/base.js";
+import { isArr, isNumber } from "../tools/base.js";
 
 const _transformRadius = Symbol("_transformRadius");
 const _buildPath = Symbol("_buildPath");
@@ -44,35 +44,6 @@ class Rect extends Shape {
       return true;
     }
     return false;
-  }
-
-  renderPath(ctx) {
-    ctx.beginPath();
-    const { pos, background, boxShadow, rotate, opacity } = this.attrs;
-    const [x, y] = pos;
-    if (isNumber(opacity)) {
-      ctx.globalAlpha = opacity;
-    }
-    if (rotate) {
-      ctx.translate(x, y);
-      ctx.rotate(rotate * RADIAN);
-      ctx.translate(-x, -y);
-    }
-    if (boxShadow) {
-      const [shadowColor, x, y, blur] = boxShadow;
-      ctx.shadowColor = shadowColor;
-      ctx.shadowOffsetX = x;
-      ctx.shadowOffsetY = y;
-      ctx.shadowBlur = blur;
-    }
-    this.paths.forEach(({ type, args }) => {
-      ctx[type](...args);
-    });
-    ctx.closePath();
-    if (background) {
-      ctx.fillStyle = background;
-      ctx.fill();
-    }
   }
 
   [_transformRadius](r, width, height) {

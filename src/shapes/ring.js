@@ -1,4 +1,4 @@
-import { isNumber, PI, PI2, RADIAN } from "../tools/base";
+import { PI2, RADIAN } from "../tools/base";
 import Shape from "./shape";
 
 class Ring extends Shape {
@@ -40,36 +40,10 @@ class Ring extends Shape {
     const { offsetX, offsetY } = event;
     const { pos, outerRadius } = this.attrs;
     const [x, y] = pos;
-    if (
-      Math.sqrt(Math.pow(x - offsetX, 2) + Math.pow(y - offsetY, 2)) <=
-      outerRadius
-    ) {
+    if (Math.sqrt((x - offsetX) ** 2 + (y - offsetY) ** 2) <= outerRadius) {
       return true;
     }
     return false;
-  }
-
-  renderPath(ctx) {
-    ctx.beginPath();
-    let { pos, rotate, background, opacity } = this.attrs;
-    const [x, y] = pos;
-    if (isNumber(opacity)) {
-      ctx.globalAlpha = opacity;
-    }
-    if (rotate) {
-      ctx.translate(x, y);
-      ctx.rotate(rotate * RADIAN);
-      ctx.translate(-x, -y);
-    }
-    this.paths.forEach(({ type, args }) => {
-      ctx[type](...args);
-    });
-    ctx.closePath();
-    if (background) {
-      ctx.fillStyle = background;
-      ctx.fill();
-    }
-    // ctx.closePath();
   }
 }
 

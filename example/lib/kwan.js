@@ -478,13 +478,49 @@ class Shape extends EventDispatcher {
     errorHandler("isPointInPath 需要被重写");
   }
 
-  renderPath() {
-    errorHandler("renderPath 需要被重写");
-  }
-
   draw(ctx) {
     ctx.save();
-    this.renderPath(ctx);
+    ctx.beginPath();
+    const {
+      pos,
+      background,
+      boxShadow,
+      rotate,
+      opacity
+    } = this.attrs;
+    const [x, y] = pos;
+
+    if (isNumber(opacity)) {
+      ctx.globalAlpha = opacity;
+    }
+
+    if (rotate) {
+      ctx.translate(x, y);
+      ctx.rotate(rotate * RADIAN);
+      ctx.translate(-x, -y);
+    }
+
+    if (boxShadow) {
+      const [shadowColor, x, y, blur] = boxShadow;
+      ctx.shadowColor = shadowColor;
+      ctx.shadowOffsetX = x;
+      ctx.shadowOffsetY = y;
+      ctx.shadowBlur = blur;
+    }
+
+    this.paths.forEach(({
+      type,
+      args
+    }) => {
+      ctx[type](...args);
+    });
+    ctx.closePath();
+
+    if (background) {
+      ctx.fillStyle = background;
+      ctx.fill();
+    }
+
     ctx.restore();
     this.isDirty = false;
   }
@@ -543,49 +579,6 @@ class Rect extends Shape {
     }
 
     return false;
-  }
-
-  renderPath(ctx) {
-    ctx.beginPath();
-    const {
-      pos,
-      background,
-      boxShadow,
-      rotate,
-      opacity
-    } = this.attrs;
-    const [x, y] = pos;
-
-    if (isNumber(opacity)) {
-      ctx.globalAlpha = opacity;
-    }
-
-    if (rotate) {
-      ctx.translate(x, y);
-      ctx.rotate(rotate * RADIAN);
-      ctx.translate(-x, -y);
-    }
-
-    if (boxShadow) {
-      const [shadowColor, x, y, blur] = boxShadow;
-      ctx.shadowColor = shadowColor;
-      ctx.shadowOffsetX = x;
-      ctx.shadowOffsetY = y;
-      ctx.shadowBlur = blur;
-    }
-
-    this.paths.forEach(({
-      type,
-      args
-    }) => {
-      ctx[type](...args);
-    });
-    ctx.closePath();
-
-    if (background) {
-      ctx.fillStyle = background;
-      ctx.fill();
-    }
   }
 
   [_transformRadius](r, width, height) {
@@ -731,45 +724,11 @@ class Arc extends Shape {
     } = this.attrs;
     const [x, y] = pos;
 
-    if (Math.sqrt(Math.pow(x - offsetX, 2) + Math.pow(y - offsetY, 2)) <= radius) {
+    if (Math.sqrt((x - offsetX) ** 2 + (y - offsetY) ** 2) <= radius) {
       return true;
     }
 
     return false;
-  }
-
-  renderPath(ctx) {
-    ctx.beginPath();
-    let {
-      pos,
-      rotate,
-      background,
-      opacity
-    } = this.attrs;
-    const [x, y] = pos;
-
-    if (isNumber(opacity)) {
-      ctx.globalAlpha = opacity;
-    }
-
-    if (rotate) {
-      ctx.translate(x, y);
-      ctx.rotate(rotate * RADIAN);
-      ctx.translate(-x, -y);
-    }
-
-    this.paths.forEach(({
-      type,
-      args
-    }) => {
-      ctx[type](...args);
-    });
-
-    if (background) {
-      ctx.fillStyle = background;
-      ctx.fill();
-    } // ctx.closePath();
-
   }
 
 }
@@ -829,46 +788,11 @@ class Ring extends Shape {
     } = this.attrs;
     const [x, y] = pos;
 
-    if (Math.sqrt(Math.pow(x - offsetX, 2) + Math.pow(y - offsetY, 2)) <= outerRadius) {
+    if (Math.sqrt((x - offsetX) ** 2 + (y - offsetY) ** 2) <= outerRadius) {
       return true;
     }
 
     return false;
-  }
-
-  renderPath(ctx) {
-    ctx.beginPath();
-    let {
-      pos,
-      rotate,
-      background,
-      opacity
-    } = this.attrs;
-    const [x, y] = pos;
-
-    if (isNumber(opacity)) {
-      ctx.globalAlpha = opacity;
-    }
-
-    if (rotate) {
-      ctx.translate(x, y);
-      ctx.rotate(rotate * RADIAN);
-      ctx.translate(-x, -y);
-    }
-
-    this.paths.forEach(({
-      type,
-      args
-    }) => {
-      ctx[type](...args);
-    });
-    ctx.closePath();
-
-    if (background) {
-      ctx.fillStyle = background;
-      ctx.fill();
-    } // ctx.closePath();
-
   }
 
 }

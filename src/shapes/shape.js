@@ -1,5 +1,5 @@
 import EventDispatcher from "../tools/eventDispatcher";
-import { errorHandler, isNumber } from "../tools/base";
+import { errorHandler, isNumber, RADIAN } from "../tools/base";
 
 class Shape extends EventDispatcher {
   constructor(attrs) {
@@ -32,13 +32,34 @@ class Shape extends EventDispatcher {
     errorHandler("isPointInPath 需要被重写");
   }
 
-  renderPath() {
-    errorHandler("renderPath 需要被重写");
-  }
-
   draw(ctx) {
     ctx.save();
-    this.renderPath(ctx);
+    ctx.beginPath();
+    const { pos, background, boxShadow, rotate, opacity } = this.attrs;
+    const [x, y] = pos;
+    if (isNumber(opacity)) {
+      ctx.globalAlpha = opacity;
+    }
+    if (rotate) {
+      ctx.translate(x, y);
+      ctx.rotate(rotate * RADIAN);
+      ctx.translate(-x, -y);
+    }
+    if (boxShadow) {
+      const [shadowColor, x, y, blur] = boxShadow;
+      ctx.shadowColor = shadowColor;
+      ctx.shadowOffsetX = x;
+      ctx.shadowOffsetY = y;
+      ctx.shadowBlur = blur;
+    }
+    this.paths.forEach(({ type, args }) => {
+      ctx[type](...args);
+    });
+    ctx.closePath();
+    if (background) {
+      ctx.fillStyle = background;
+      ctx.fill();
+    }
     ctx.restore();
     this.isDirty = false;
   }
