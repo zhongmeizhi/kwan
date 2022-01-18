@@ -4,7 +4,7 @@ const random = (multi) => {
   return Math.ceil(Math.random() * multi);
 };
 
-const { Scene, shapes } = kwan;
+const { Scene, shapes, Group } = kwan;
 
 const ele = document.getElementById("canvasContainer");
 
@@ -30,7 +30,7 @@ const rect = new shapes.Rect({
   size: [40, 40],
   background: "yellow",
   borderRadius: [8],
-  rotate: 30
+  rotate: 30,
 });
 
 rect.addEventListener("click", () => {
@@ -51,8 +51,6 @@ rect.addEventListener("mouseleave", () => {
   });
 });
 
-scene.append(rect);
-
 const arc = new shapes.Arc({
   pos: [100, 50],
   background: "yellow",
@@ -60,7 +58,8 @@ const arc = new shapes.Arc({
   startAngle: 30,
   endAngle: 260,
   close: true,
-  rotate: 30
+  anchor: [-1, 0],
+  rotate: 90,
 });
 
 arc.addEventListener("click", () => {
@@ -69,8 +68,6 @@ arc.addEventListener("click", () => {
   });
 });
 
-scene.append(arc);
-
 const ring = new shapes.Ring({
   pos: [200, 200],
   background: "yellow",
@@ -78,7 +75,8 @@ const ring = new shapes.Ring({
   outerRadius: 40,
   startAngle: 30,
   endAngle: 160,
-  rotate: 30
+  anchor: [0, 1],
+  rotate: 90,
 });
 
 ring.addEventListener("click", () => {
@@ -87,7 +85,52 @@ ring.addEventListener("click", () => {
   });
 });
 
-scene.append(ring);
+const group = new Group({
+  pos: [330, 330],
+  size: [180, 180],
+  background: 'yellow',
+  // anchor: [0, 0],
+  rotate: 30,
+});
+
+group.addEventListener("click", () => {
+  group.setAttrs({
+    rotate: random(360),
+  });
+});
+
+const subRect = new shapes.Rect({
+  pos: [90, 90],
+  size: [40, 40],
+  background: "#d95140",
+  borderRadius: [8],
+  // rotate: 30,
+});
+
+const subArc = new shapes.Arc({
+  pos: [30, 30],
+  background: "#d95140",
+  radius: 30,
+  startAngle: 30,
+  endAngle: 260,
+  close: true,
+  // rotate: 30,
+});
+
+const subRing = new shapes.Ring({
+  pos: [90, 30],
+  background: "#d95140",
+  innerRadius: 20,
+  outerRadius: 40,
+  startAngle: 30,
+  endAngle: 160,
+  // rotate: 30,
+});
+
+group.append(subRect, subArc, subRing)
+
+// scene.append(rect,arc, ring, group)
+scene.append(group)
 
 const run = () => {
   // rect.setAttrs({

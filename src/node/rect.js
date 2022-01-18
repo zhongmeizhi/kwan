@@ -1,21 +1,23 @@
-import Shape from "./shape";
+import Node from "./node";
 import { isArr, isNumber } from "../tools/base.js";
 
 const _transformRadius = Symbol("_transformRadius");
 const _buildPath = Symbol("_buildPath");
 
-class Rect extends Shape {
+class Rect extends Node {
   constructor(args) {
     super(args);
     this.name = "$$rect";
   }
 
+  /* override */
   createPath() {
     this.paths = [];
     const { pos, size, borderRadius } = this.attrs;
     const [x, y] = pos;
     const [width, height] = size;
     const radius = borderRadius || 0;
+    this.setOffsetAnchor();
     if (!radius) {
       this.paths.push({
         type: "rect",
@@ -26,6 +28,22 @@ class Rect extends Shape {
     }
   }
 
+  /* override */
+  // FIXME: 应该在创建路径时就计算好旋转和偏移
+  setOffsetAnchor() {
+    const { pos, size, anchor } = this.attrs;
+    const [x, y] = pos;
+    const [width, height] = size;
+    let offsetRateX = 0.5;
+    let offsetRateY = 0.5;
+    if (anchor) {
+      [offsetRateX, offsetRateY] = anchor;
+    }
+    this.anchorX = x + width * offsetRateX;
+    this.anchorY = y + height * offsetRateY;
+  }
+
+  /* override */
   /**
    * @param  {MouseEvent} event
    */

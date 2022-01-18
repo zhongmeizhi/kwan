@@ -1,9 +1,17 @@
 import Scene from "./scene/index";
-import shapes from "./shapes/index";
+import Group from "./node/group";
+import Rect from "./node/rect";
+import Arc from "./node/arc";
+import Ring from "./node/ring";
 
 const kwan = {
   Scene,
-  shapes,
+  Group,
+  shapes: {
+    Rect,
+    Arc,
+    Ring,
+  },
 };
 
 export default kwan;

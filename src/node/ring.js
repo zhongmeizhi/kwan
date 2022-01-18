@@ -1,12 +1,13 @@
+import Node from "./node";
 import { PI2, RADIAN } from "../tools/base";
-import Shape from "./shape";
 
-class Ring extends Shape {
+class Ring extends Node {
   constructor(args) {
     super(args);
     this.name = "$$ring";
   }
 
+  /* override */
   createPath() {
     this.paths = [];
     let { pos, innerRadius, outerRadius, startAngle, endAngle } = this.attrs;
@@ -14,6 +15,7 @@ class Ring extends Shape {
     startAngle = RADIAN * startAngle;
     endAngle = RADIAN * endAngle;
 
+    this.setOffsetAnchor()
     this.paths.push({
       type: "arc",
       args: [x, y, outerRadius, startAngle, endAngle, false],
@@ -32,6 +34,21 @@ class Ring extends Shape {
     }
   }
 
+  /* override */
+  // FIXME: 应该在创建路径时就计算好旋转和偏移
+  setOffsetAnchor() {
+    const {pos, outerRadius, anchor} = this.attrs;
+    const [x, y] = pos;
+    let offsetRateX = 0;
+    let offsetRateY = 0;
+    if (anchor) {
+      [offsetRateX, offsetRateY] = anchor;
+    }
+    this.anchorX = x + outerRadius * offsetRateX;
+    this.anchorY = y + outerRadius * offsetRateY;
+  }
+
+  /* override */
   /**
    * @param  {MouseEvent} event
    */

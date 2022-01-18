@@ -43,8 +43,8 @@ class Scene {
     ele.addEventListener("mousemove", this.onMouseMove.bind(this));
   }
 
-  append(shape) {
-    this.mesh.append(shape);
+  append(...shapes) {
+    shapes.forEach((shape) => this.mesh.append(shape));
     this._version++;
   }
 

@@ -242,8 +242,8 @@ class Scene {
     ele.addEventListener("mousemove", this.onMouseMove.bind(this));
   }
 
-  append(shape) {
-    this.mesh.append(shape);
+  append(...shapes) {
+    shapes.forEach(shape => this.mesh.append(shape));
     this._version++;
   }
 
@@ -445,7 +445,7 @@ class EventDispatcher {
 
 }
 
-class Shape extends EventDispatcher {
+class Node extends EventDispatcher {
   constructor(attrs) {
     super(); // TODO: 入参校验
 
@@ -468,36 +468,35 @@ class Shape extends EventDispatcher {
 
   bindMeshes(mesh) {
     this.meshes.push(mesh);
+  } // 旋转中心点
+
+
+  setOffsetAnchor() {
+    const [x, y] = this.attrs.pos;
+    this.anchorX = x;
+    this.anchorY = y;
   }
 
   createPath() {
     errorHandler("render 需要被重写");
   }
 
-  isPointInPath() {
-    errorHandler("isPointInPath 需要被重写");
-  }
-
-  draw(ctx) {
-    ctx.save();
-    ctx.beginPath();
+  buildStyle(ctx) {
     const {
-      pos,
-      background,
       boxShadow,
       rotate,
       opacity
-    } = this.attrs;
-    const [x, y] = pos;
+    } = this.attrs; // TODO: 透明度等应该在路径绘制时将颜色算好
 
     if (isNumber(opacity)) {
       ctx.globalAlpha = opacity;
-    }
+    } // TODO: 矩阵计算， 应该在创建路径时就计算好旋转和偏移
+
 
     if (rotate) {
-      ctx.translate(x, y);
+      ctx.translate(this.anchorX, this.anchorY);
       ctx.rotate(rotate * RADIAN);
-      ctx.translate(-x, -y);
+      ctx.translate(-this.anchorX, -this.anchorY);
     }
 
     if (boxShadow) {
@@ -507,22 +506,133 @@ class Shape extends EventDispatcher {
       ctx.shadowOffsetY = y;
       ctx.shadowBlur = blur;
     }
+  }
 
-    this.paths.forEach(({
-      type,
-      args
-    }) => {
-      ctx[type](...args);
-    });
-    ctx.closePath();
+  buildPath(ctx) {
+    if (this.paths && this.paths.length) {
+      const {
+        background
+      } = this.attrs;
+      this.paths.forEach(({
+        type,
+        args
+      }) => {
+        ctx[type](...args);
+      });
+
+      if (background) {
+        ctx.fillStyle = background;
+        ctx.fill();
+      }
+    }
+  }
+
+  isPointInPath() {
+    errorHandler("isPointInPath 需要被重写");
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.beginPath();
+    this.buildStyle(ctx);
+    this.buildPath(ctx);
+    ctx.restore();
+    this.isDirty = false;
+  }
+
+}
+
+class Group extends Node {
+  constructor(args) {
+    super(args);
+    this.name = "$$group";
+    this.children = [];
+  }
+  /* override */
+
+
+  createPath() {
+    this.paths = []; // const { pos, size } = this.attrs;
+    // const [x, y] = pos;
+    // const [width, height] = size;
+
+    this.setOffsetAnchor();
+  }
+  /* override */
+  // FIXME: 应该在创建路径时就计算好旋转和偏移
+
+
+  setOffsetAnchor() {
+    const {
+      pos,
+      size,
+      anchor
+    } = this.attrs;
+    const [x, y] = pos;
+    const [width, height] = size;
+    let offsetRateX = 0.5;
+    let offsetRateY = 0.5;
+
+    if (anchor) {
+      [offsetRateX, offsetRateY] = anchor;
+    }
+
+    this.anchorX = x + width * offsetRateX;
+    this.anchorY = y + height * offsetRateY;
+  }
+  /* override */
+
+  /**
+   * @param  {MouseEvent} event
+   */
+
+
+  isPointInPath(event) {
+    const {
+      offsetX,
+      offsetY
+    } = event;
+    const {
+      pos,
+      size
+    } = this.attrs;
+    const [x, y] = pos;
+    const [width, height] = size;
+
+    if (offsetX > x && offsetX < x + width && offsetY > y && offsetY < y + height) {
+      return true;
+    }
+
+    return false;
+  }
+
+  append(...shapes) {
+    shapes.forEach(shape => this.children.push(shape));
+  }
+  /* override */
+
+
+  buildPath(ctx) {
+    const {
+      pos,
+      size,
+      background
+    } = this.attrs;
+    const [x, y] = pos;
+    const [width, height] = size;
 
     if (background) {
+      ctx.rect(x, y, width, height);
       ctx.fillStyle = background;
       ctx.fill();
     }
 
-    ctx.restore();
-    this.isDirty = false;
+    ctx.beginPath(); // TODO: 矩阵计算， 应该在创建路径时就计算好旋转和偏移
+
+    ctx.translate(x, y);
+    this.children.forEach(shape => {
+      shape.draw(ctx);
+    });
   }
 
 }
@@ -531,11 +641,13 @@ const _transformRadius = Symbol("_transformRadius");
 
 const _buildPath = Symbol("_buildPath");
 
-class Rect extends Shape {
+class Rect extends Node {
   constructor(args) {
     super(args);
     this.name = "$$rect";
   }
+  /* override */
+
 
   createPath() {
     this.paths = [];
@@ -547,6 +659,7 @@ class Rect extends Shape {
     const [x, y] = pos;
     const [width, height] = size;
     const radius = borderRadius || 0;
+    this.setOffsetAnchor();
 
     if (!radius) {
       this.paths.push({
@@ -557,6 +670,30 @@ class Rect extends Shape {
       this[_buildPath](x, y, width, height, radius);
     }
   }
+  /* override */
+  // FIXME: 应该在创建路径时就计算好旋转和偏移
+
+
+  setOffsetAnchor() {
+    const {
+      pos,
+      size,
+      anchor
+    } = this.attrs;
+    const [x, y] = pos;
+    const [width, height] = size;
+    let offsetRateX = 0.5;
+    let offsetRateY = 0.5;
+
+    if (anchor) {
+      [offsetRateX, offsetRateY] = anchor;
+    }
+
+    this.anchorX = x + width * offsetRateX;
+    this.anchorY = y + height * offsetRateY;
+  }
+  /* override */
+
   /**
    * @param  {MouseEvent} event
    */
@@ -676,11 +813,13 @@ class Rect extends Shape {
 
 }
 
-class Arc extends Shape {
+class Arc extends Node {
   constructor(args) {
     super(args);
     this.name = "$$arc";
   }
+  /* override */
+
 
   createPath() {
     this.paths = [];
@@ -694,6 +833,7 @@ class Arc extends Shape {
     const [x, y] = pos;
     startAngle = RADIAN * startAngle;
     endAngle = RADIAN * endAngle;
+    this.setOffsetAnchor();
 
     if (close) {
       this.paths.push({
@@ -707,6 +847,29 @@ class Arc extends Shape {
       args: [x, y, radius, startAngle, endAngle, false]
     });
   }
+  /* override */
+  // FIXME: 应该在创建路径时就计算好旋转和偏移
+
+
+  setOffsetAnchor() {
+    const {
+      pos,
+      radius,
+      anchor
+    } = this.attrs;
+    const [x, y] = pos;
+    let offsetRateX = 0;
+    let offsetRateY = 0;
+
+    if (anchor) {
+      [offsetRateX, offsetRateY] = anchor;
+    }
+
+    this.anchorX = x + radius * offsetRateX;
+    this.anchorY = y + radius * offsetRateY;
+  }
+  /* override */
+
   /**
    * @param  {MouseEvent} event
    */
@@ -733,11 +896,13 @@ class Arc extends Shape {
 
 }
 
-class Ring extends Shape {
+class Ring extends Node {
   constructor(args) {
     super(args);
     this.name = "$$ring";
   }
+  /* override */
+
 
   createPath() {
     this.paths = [];
@@ -751,6 +916,7 @@ class Ring extends Shape {
     const [x, y] = pos;
     startAngle = RADIAN * startAngle;
     endAngle = RADIAN * endAngle;
+    this.setOffsetAnchor();
     this.paths.push({
       type: "arc",
       args: [x, y, outerRadius, startAngle, endAngle, false]
@@ -771,6 +937,29 @@ class Ring extends Shape {
       });
     }
   }
+  /* override */
+  // FIXME: 应该在创建路径时就计算好旋转和偏移
+
+
+  setOffsetAnchor() {
+    const {
+      pos,
+      outerRadius,
+      anchor
+    } = this.attrs;
+    const [x, y] = pos;
+    let offsetRateX = 0;
+    let offsetRateY = 0;
+
+    if (anchor) {
+      [offsetRateX, offsetRateY] = anchor;
+    }
+
+    this.anchorX = x + outerRadius * offsetRateX;
+    this.anchorY = y + outerRadius * offsetRateY;
+  }
+  /* override */
+
   /**
    * @param  {MouseEvent} event
    */
@@ -797,15 +986,14 @@ class Ring extends Shape {
 
 }
 
-var shapes = {
-  Rect,
-  Arc,
-  Ring
-};
-
 const kwan = {
   Scene,
-  shapes
+  Group,
+  shapes: {
+    Rect,
+    Arc,
+    Ring
+  }
 };
 
 export default kwan;

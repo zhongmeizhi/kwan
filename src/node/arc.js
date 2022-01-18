@@ -1,12 +1,13 @@
 import { RADIAN } from "../tools/base";
-import Shape from "./shape";
+import Node from "./node";
 
-class Arc extends Shape {
+class Arc extends Node {
   constructor(args) {
     super(args);
     this.name = "$$arc";
   }
 
+  /* override */
   createPath() {
     this.paths = [];
     let { pos, radius, startAngle, endAngle, close } = this.attrs;
@@ -14,6 +15,7 @@ class Arc extends Shape {
     startAngle = RADIAN * startAngle;
     endAngle = RADIAN * endAngle;
 
+    this.setOffsetAnchor()
     if (close) {
       this.paths.push({
         type: "moveTo",
@@ -26,6 +28,21 @@ class Arc extends Shape {
     });
   }
 
+  /* override */
+  // FIXME: 应该在创建路径时就计算好旋转和偏移
+  setOffsetAnchor() {
+    const { pos, radius, anchor } = this.attrs;
+    const [x, y] = pos;
+    let offsetRateX = 0;
+    let offsetRateY = 0;
+    if (anchor) {
+      [offsetRateX, offsetRateY] = anchor;
+    }
+    this.anchorX = x + radius * offsetRateX;
+    this.anchorY = y + radius * offsetRateY;
+  }
+
+  /* override */
   /**
    * @param  {MouseEvent} event
    */
