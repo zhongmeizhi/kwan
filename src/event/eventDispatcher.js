@@ -1,8 +1,16 @@
-import { isFn, errorHandler, EVENT_SET } from "../utils/tool.js";
+import { isFn } from "../utils/tool.js";
+
+const EVENT_SET = new Set(["click", "mousemove", "mouseenter", "mouseleave"]);
+
+const _events = Symbol("_events");
 
 class EventDispatcher {
   constructor() {
-    this.events = {};
+    this[_events] = {};
+  }
+
+  getEvents() {
+    return this[_events];
   }
 
   /**
@@ -10,20 +18,19 @@ class EventDispatcher {
    * @param  {Function} listener
    */
   addEventListener(type, listener) {
-    if (!isFn(listener)) return errorHandler("监听对象不是一个函数");
-    if (!EVENT_SET.has(type)) return;
-    if (!this.events[type]) {
-      this.events[type] = new Set();
+    if (!isFn(listener) || !EVENT_SET.has(type)) return;
+    if (!this[_events][type]) {
+      this[_events][type] = new Set();
     }
-    this.events[type].add(listener);
+    this[_events][type].add(listener);
   }
 
   /**
    * @param  {String type
    */
   dispatchEvent(type, argv) {
-    if (this.events[type]) {
-      this.events[type].forEach((listener) => listener.call(this, argv));
+    if (this[_events][type]) {
+      this[_events][type].forEach((listener) => listener.call(this, argv));
     }
   }
 
@@ -32,16 +39,21 @@ class EventDispatcher {
    * @param  {Function} listener
    */
   removeEventListener(type, listener) {
-    if (!this.events[type]) return;
-    if (this.events[type] && listener) {
-      if (this.events[type].size === 1) {
-        delete this.events[type];
+    if (!this[_events][type]) return;
+    if (this[_events][type] && listener) {
+      if (this[_events][type].size === 1) {
+        delete this[_events][type];
       } else {
-        this.events[type].delete(listener);
+        this[_events][type].delete(listener);
       }
+    }
+  }
+
+  clearEventListener(type) {
+    if (type) {
+      delete this[_events][type];
     } else {
-      // remove all
-      delete this.events[type];
+      this[_events] = {};
     }
   }
 }

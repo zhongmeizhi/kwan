@@ -17,10 +17,3 @@ export const PI = Math.PI;
 export const PI2 = Math.PI * 2;
 
 export const RADIAN = PI / 180;
-
-export const EVENT_SET = new Set([
-  "click",
-  "mousemove",
-  "mouseenter",
-  "mouseleave",
-]);

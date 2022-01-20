@@ -55,17 +55,15 @@ const arc = new shapes.Arc({
   pos: [100, 50],
   background: "yellow",
   radius: 30,
-  startAngle: 30,
-  endAngle: 260,
+  startAngle: -90,
+  endAngle: 270,
   close: true,
   anchor: [-1, 0],
   rotate: 90,
 });
 
-arc.addEventListener("click", () => {
-  arc.setAttrs({
-    pos: [random(100), random(50)],
-  });
+arc.addEventListener("click", (target) => {
+  target.getAnimator().finish();
 });
 
 const ring = new shapes.Ring({
@@ -89,8 +87,6 @@ const group = new Group({
   pos: [330, 330],
   size: [180, 180],
   background: "yellow",
-  // anchor: [0, 0],
-  rotate: 30,
 });
 
 group.addEventListener("click", () => {
@@ -104,7 +100,6 @@ const subRect = new shapes.Rect({
   size: [40, 40],
   background: "#d95140",
   borderRadius: [8],
-  // rotate: 30,
 });
 
 const subArc = new shapes.Arc({
@@ -114,7 +109,6 @@ const subArc = new shapes.Arc({
   startAngle: 30,
   endAngle: 260,
   close: true,
-  // rotate: 30,
 });
 
 const subRing = new shapes.Ring({
@@ -124,7 +118,6 @@ const subRing = new shapes.Ring({
   outerRadius: 40,
   startAngle: 30,
   endAngle: 160,
-  // rotate: 30,
 });
 
 group.append(subRect, subArc, subRing);
@@ -137,8 +130,25 @@ group.animate(
   ],
   {
     duration: 1000,
+    delay: 1000,
+  }
+);
+
+arc.animate(
+  [
+    {
+      startAngle: -45,
+      endAngle: 225,
+    },
+    {
+      startAngle: -125,
+      endAngle: 315,
+    },
+  ],
+  {
+    duration: 200,
     iterations: Infinity,
   }
 );
 
-scene.run();
+scene.start();

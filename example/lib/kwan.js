@@ -180,32 +180,37 @@ class Mesh {
 
 }
 
-const _running = Symbol("_running");
+const _isRunning = Symbol("_isRunning");
+
+const _run = Symbol("_run");
 
 const _runRaf = Symbol("_runRaf");
 
 const _getRaf = Symbol("_getRaf");
 
+const _requestAnimationFrame = Symbol("_requestAnimationFrame");
+
 class Loop {
   constructor(run) {
-    this.run = run;
-    this[_running] = false;
-    this.requestAnimationFrame = this[_getRaf]();
+    this[_run] = run;
+    this[_isRunning] = false;
+    this[_requestAnimationFrame] = this[_getRaf]();
   }
 
   start() {
-    this[_running] = true;
+    this[_isRunning] = true;
 
     this[_runRaf]();
   }
 
   stop() {
-    this[_running] = false;
+    this[_isRunning] = false;
   }
 
   [_runRaf]() {
-    this.run();
-    this[_running] && this.requestAnimationFrame(this[_runRaf].bind(this));
+    this[_run]();
+
+    this[_isRunning] && this[_requestAnimationFrame](this[_runRaf].bind(this));
   }
 
   [_getRaf]() {
@@ -364,7 +369,7 @@ class Scene {
     this.draw();
   }
 
-  run() {
+  start() {
     this.loop.start();
   }
 
@@ -387,8 +392,10 @@ class Scene {
       offsetY
     } = event;
     this.queryMesh(offsetX, offsetY).forEach(shape => {
-      if (shape.events["click"] && shape.isPointInPath(event)) {
-        shape.dispatchEvent("click");
+      const events = shape.getEvents();
+
+      if (events["click"] && shape.isPointInPath(event)) {
+        shape.dispatchEvent("click", shape);
       }
     });
   }
@@ -399,16 +406,18 @@ class Scene {
       offsetY
     } = event;
     this.queryMesh(offsetX, offsetY).forEach(shape => {
-      if (shape.events["mousemove"] || shape.events["mouseenter"] || shape.events["mouseleave"]) {
+      const events = shape.getEvents();
+
+      if (events["mousemove"] || events["mouseenter"] || events["mouseleave"]) {
         if (shape.isPointInPath(event)) {
           if (!this.hoverShapeSet.has(shape)) {
-            shape.dispatchEvent("mouseenter");
+            shape.dispatchEvent("mouseenter", shape);
           }
 
-          shape.dispatchEvent("mousemove");
+          shape.dispatchEvent("mousemove", shape);
           this.hoverShapeSet.add(shape);
         } else if (this.hoverShapeSet.has(shape)) {
-          shape.dispatchEvent("mouseleave");
+          shape.dispatchEvent("mouseleave", shape);
           this.hoverShapeSet.delete(shape);
         }
       }
@@ -416,8 +425,6 @@ class Scene {
   }
 
 }
-
-const _initAnimate = Symbol("_initAnimate");
 
 const _computeCurAttrs = Symbol("_computeCurAttrs");
 
@@ -436,41 +443,57 @@ class Animator {
   constructor(shape, startAttrs, endAttrs, options = {
     duration: 0,
     fillMode: "backwards",
-    iterations: 1
+    iterations: 1,
+    delay: 0
   }) {
     this.target = shape;
     this.startAttrs = startAttrs;
     this.endAttrs = endAttrs;
     this.options = options;
-    this.animationEffect = {
-      state: "pending",
-      iteration: 0
-    };
     this.loop = new Loop(this.update.bind(this));
-
-    this[_initAnimate]();
+    this.restart();
   }
 
-  [_initAnimate]() {
-    this.startTime = Date.now();
-    this.target.setAttrs(this.startAttrs); // TODO: 延迟动画
+  restart() {
+    setTimeout(() => {
+      this.effect = {
+        state: "pending",
+        startTiming: Date.now(),
+        executionTiming: 0,
+        pauseTiming: 0,
+        iteration: 0
+      };
+      this.loop.start();
+    }, this.options.delay || 0);
+  }
 
-    this.loop.start();
+  start() {
+    if (this.effect.state === "paused") {
+      const now = Date.now();
+      const pauseDistTime = now - this.effect.pauseTiming;
+      this.effect.startTiming += pauseDistTime;
+      this.effect.state = "running";
+      this.loop.start();
+    }
+  }
+
+  pause() {
+    if (this.effect.state === "running") {
+      this.effect.state = "paused";
+      this.effect.pauseTiming = Date.now();
+      this.loop.stop();
+    }
   }
 
   update() {
-    if (this.animationEffect.state === "pending") {
-      this.animationEffect.state = "running";
+    this.effect.executionTiming = Date.now() - this.effect.startTiming;
+
+    if (this.effect.state === "pending") {
+      this.effect.state = "running";
     }
 
-    if (this.animationEffect.state === "finish") {
-      if (this.options.fillMode === "forwards") {
-        this.target.setAttrs(this.startAttrs);
-      } else {
-        this.target.setAttrs(this.endAttrs);
-      }
-
-      this.loop.stop();
+    if (this.isFinish()) {
+      this.finish();
       return;
     }
 
@@ -478,24 +501,38 @@ class Animator {
     this.target.setAttrs(curAttrs);
   }
 
+  finish() {
+    this.effect.state = "finish";
+
+    if (this.options.fillMode === "forwards") {
+      this.target.setAttrs(this.startAttrs);
+    } else {
+      this.target.setAttrs(this.endAttrs);
+    }
+
+    this.loop.stop();
+  }
+
+  isFinish() {
+    if (this.effect.state === "finish" || this.effect.executionTiming > this.options.duration && (!this.options.iterations || this.effect.iteration > this.options.iterations)) {
+      return true;
+    }
+
+    return false;
+  }
+
   getAnimationEffect() {
-    const lock = Date.now(); // debugger;
+    const dist = this.effect.executionTiming;
+    const duration = this.options.duration;
+    const iteration = dist / duration; // 处理最后一帧稍大的情况
 
-    if (lock > this.startTime + this.options.duration && (!this.options.iterations || this.animationEffect.iteration > this.options.iterations)) {
-      this.animationEffect.state = "finish";
+    if (iteration * 1000 >= this.options.iterations * duration) {
+      return this.endAttrs;
     }
 
-    let rate = 1;
-
-    if (this.animationEffect.state !== "finish") {
-      const dist = lock - this.startTime;
-      rate = dist % this.options.duration / this.options.duration;
-      this.animationEffect.iteration = Math.ceil(dist / this.options.duration);
-    }
-
-    const curAttrs = this[_computeCurAttrs](rate);
-
-    return curAttrs;
+    let rate = dist % duration / duration;
+    this.effect.iteration = Math.ceil(iteration);
+    return this[_computeCurAttrs](rate);
   }
 
   [_computeCurAttrs](rate) {
@@ -510,6 +547,11 @@ class Animator {
           curAttrs[key] = getDoubleDist(startAttr, endAttr, rate);
           break;
 
+        case "radius":
+        case "innerRadius":
+        case "outerRadius":
+        case "startAngle":
+        case "endAngle":
         case "opacity":
         case "rotate":
           curAttrs[key] = getSingeDist(startAttr, endAttr, rate);
@@ -534,11 +576,18 @@ function errorHandler(msg) {
 const PI = Math.PI;
 const PI2 = Math.PI * 2;
 const RADIAN = PI / 180;
+
 const EVENT_SET = new Set(["click", "mousemove", "mouseenter", "mouseleave"]);
+
+const _events = Symbol("_events");
 
 class EventDispatcher {
   constructor() {
-    this.events = {};
+    this[_events] = {};
+  }
+
+  getEvents() {
+    return this[_events];
   }
   /**
    * @param  {String} type
@@ -547,14 +596,13 @@ class EventDispatcher {
 
 
   addEventListener(type, listener) {
-    if (!isFn(listener)) return errorHandler("监听对象不是一个函数");
-    if (!EVENT_SET.has(type)) return;
+    if (!isFn(listener) || !EVENT_SET.has(type)) return;
 
-    if (!this.events[type]) {
-      this.events[type] = new Set();
+    if (!this[_events][type]) {
+      this[_events][type] = new Set();
     }
 
-    this.events[type].add(listener);
+    this[_events][type].add(listener);
   }
   /**
    * @param  {String type
@@ -562,8 +610,8 @@ class EventDispatcher {
 
 
   dispatchEvent(type, argv) {
-    if (this.events[type]) {
-      this.events[type].forEach(listener => listener.call(this, argv));
+    if (this[_events][type]) {
+      this[_events][type].forEach(listener => listener.call(this, argv));
     }
   }
   /**
@@ -573,17 +621,22 @@ class EventDispatcher {
 
 
   removeEventListener(type, listener) {
-    if (!this.events[type]) return;
+    if (!this[_events][type]) return;
 
-    if (this.events[type] && listener) {
-      if (this.events[type].size === 1) {
-        delete this.events[type];
+    if (this[_events][type] && listener) {
+      if (this[_events][type].size === 1) {
+        delete this[_events][type];
       } else {
-        this.events[type].delete(listener);
+        this[_events][type].delete(listener);
       }
+    }
+  }
+
+  clearEventListener(type) {
+    if (type) {
+      delete this[_events][type];
     } else {
-      // remove all
-      delete this.events[type];
+      this[_events] = {};
     }
   }
 
@@ -604,15 +657,11 @@ class Node extends EventDispatcher {
   setAttrs(newAttrs = {}) {
     // TODO: 入参校验
     this.attrs = Object.assign({}, this.attrs, newAttrs);
-
-    if (newAttrs.pos || newAttrs.size || newAttrs.borderRadius) {
-      this.createPath();
-    }
-
+    this.createPath();
     this.meshes.forEach(mesh => mesh.setDirty(true));
   }
 
-  getActiveAnimate() {
+  getAnimator() {
     return this[_animation];
   } // TODO: 入参校验
 
@@ -631,7 +680,9 @@ class Node extends EventDispatcher {
     const [x, y] = this.attrs.pos;
     this.anchorX = x;
     this.anchorY = y;
-  }
+  } // adjustAttr() {
+  // }
+
 
   createPath() {
     errorHandler("render 需要被重写");
@@ -690,7 +741,8 @@ class Node extends EventDispatcher {
   draw(ctx) {
     ctx.save();
     ctx.beginPath();
-    this.buildStyle(ctx);
+    this.buildStyle(ctx); // console.log(this.attrs, 'arc');
+
     this.buildPath(ctx);
     ctx.restore();
     this.isDirty = false;

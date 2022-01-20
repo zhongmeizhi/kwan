@@ -17,13 +17,11 @@ class Node extends EventDispatcher {
   setAttrs(newAttrs = {}) {
     // TODO: 入参校验
     this.attrs = Object.assign({}, this.attrs, newAttrs);
-    if (newAttrs.pos || newAttrs.size || newAttrs.borderRadius) {
-      this.createPath();
-    }
+    this.createPath();
     this.meshes.forEach((mesh) => mesh.setDirty(true));
   }
 
-  getActiveAnimate() {
+  getAnimator() {
     return this[_animation];
   }
 
@@ -43,6 +41,9 @@ class Node extends EventDispatcher {
     this.anchorX = x;
     this.anchorY = y;
   }
+
+  // adjustAttr() {
+  // }
 
   createPath() {
     errorHandler("render 需要被重写");
@@ -90,6 +91,7 @@ class Node extends EventDispatcher {
     ctx.save();
     ctx.beginPath();
     this.buildStyle(ctx);
+    // console.log(this.attrs, 'arc');
     this.buildPath(ctx);
     ctx.restore();
     this.isDirty = false;

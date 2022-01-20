@@ -129,12 +129,12 @@ class Scene {
     this.draw();
   }
 
-  run() {
-    this.loop.start()
+  start() {
+    this.loop.start();
   }
 
   stop() {
-    this.loop.stop()
+    this.loop.stop();
   }
 
   queryMesh(x, y, blur = 2) {
@@ -146,8 +146,9 @@ class Scene {
   onClick(event) {
     const { offsetX, offsetY } = event;
     this.queryMesh(offsetX, offsetY).forEach((shape) => {
-      if (shape.events["click"] && shape.isPointInPath(event)) {
-        shape.dispatchEvent("click");
+      const events = shape.getEvents();
+      if (events["click"] && shape.isPointInPath(event)) {
+        shape.dispatchEvent("click", shape);
       }
     });
   }
@@ -155,19 +156,16 @@ class Scene {
   onMouseMove(event) {
     const { offsetX, offsetY } = event;
     this.queryMesh(offsetX, offsetY).forEach((shape) => {
-      if (
-        shape.events["mousemove"] ||
-        shape.events["mouseenter"] ||
-        shape.events["mouseleave"]
-      ) {
+      const events = shape.getEvents();
+      if (events["mousemove"] || events["mouseenter"] || events["mouseleave"]) {
         if (shape.isPointInPath(event)) {
           if (!this.hoverShapeSet.has(shape)) {
-            shape.dispatchEvent("mouseenter");
+            shape.dispatchEvent("mouseenter", shape);
           }
-          shape.dispatchEvent("mousemove");
+          shape.dispatchEvent("mousemove", shape);
           this.hoverShapeSet.add(shape);
         } else if (this.hoverShapeSet.has(shape)) {
-          shape.dispatchEvent("mouseleave");
+          shape.dispatchEvent("mouseleave", shape);
           this.hoverShapeSet.delete(shape);
         }
       }
