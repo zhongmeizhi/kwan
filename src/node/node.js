@@ -1,5 +1,8 @@
-import EventDispatcher from "../tools/eventDispatcher";
-import { errorHandler, isNumber, RADIAN } from "../tools/base";
+import Animator from "../animator/index";
+import EventDispatcher from "../event/eventDispatcher";
+import { errorHandler, isNumber, RADIAN } from "../utils/tool";
+
+const _animation = Symbol("_animation");
 
 class Node extends EventDispatcher {
   constructor(attrs) {
@@ -18,6 +21,16 @@ class Node extends EventDispatcher {
       this.createPath();
     }
     this.meshes.forEach((mesh) => mesh.setDirty(true));
+  }
+
+  getActiveAnimate() {
+    return this[_animation];
+  }
+
+  // TODO: 入参校验
+  animate([startAttrs, endAttrs], options) {
+    this[_animation] = new Animator(this, startAttrs, endAttrs, options);
+    return this[_animation];
   }
 
   bindMeshes(mesh) {

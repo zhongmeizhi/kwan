@@ -1,5 +1,5 @@
 import Node from "./node";
-import { PI2, RADIAN } from "../tools/base";
+import { PI2, RADIAN } from "../utils/tool";
 
 class Ring extends Node {
   constructor(args) {

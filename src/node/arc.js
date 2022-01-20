@@ -1,4 +1,4 @@
-import { RADIAN } from "../tools/base";
+import { RADIAN } from "../utils/tool";
 import Node from "./node";
 
 class Arc extends Node {

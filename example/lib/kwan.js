@@ -1,6 +1,6 @@
-const _splitMesh = Symbol("_splitMesh");
+const _createAxis = Symbol("_createAxis");
 
-const _getIndex = Symbol("_getIndex");
+const _splitMesh = Symbol("_splitMesh");
 /**
  * @param  {pRect} pRect={x,y,width,height}
  * @param  {number} max_objects=10
@@ -44,7 +44,7 @@ class Mesh {
         indexes; // 如果有子mesh则插入最下层mesh
 
     if (this.children.length) {
-      indexes = this[_getIndex](shape);
+      indexes = this.getBoundBoxIndex(shape);
 
       for (i = 0; i < indexes.length; i++) {
         this.children[indexes[i]].append(shape);
@@ -61,7 +61,7 @@ class Mesh {
       }
 
       for (i = 0; i < this.shapes.length; i++) {
-        indexes = this[_getIndex](this.shapes[i]);
+        indexes = this.getBoundBoxIndex(this.shapes[i]);
 
         for (let k = 0; k < indexes.length; k++) {
           this.children[indexes[k]].append(this.shapes[i]);
@@ -79,8 +79,7 @@ class Mesh {
 
 
   retrieve(shape) {
-    const indexes = this[_getIndex](shape);
-
+    const indexes = this.getBoundBoxIndex(shape);
     let returnShapes = this.shapes;
 
     if (this.children.length) {
@@ -96,17 +95,8 @@ class Mesh {
     return returnShapes;
   }
 
-  [_splitMesh]() {
-    let nextLevel = this.level + 1;
-    const {
-      x,
-      y,
-      width,
-      height
-    } = this.bounds;
-    let subWidth = width / 2;
-    let subHeight = height / 2;
-    const axis = [{
+  [_createAxis](x, y, subWidth, subHeight) {
+    return [{
       x: x + subWidth,
       y: y
     }, {
@@ -119,6 +109,21 @@ class Mesh {
       x: x + subWidth,
       y: y + subHeight
     }];
+  }
+
+  [_splitMesh]() {
+    let nextLevel = this.level + 1;
+    const {
+      x,
+      y,
+      width,
+      height
+    } = this.bounds;
+    let subWidth = width / 2;
+    let subHeight = height / 2;
+
+    const axis = this[_createAxis](x, y, subWidth, subHeight);
+
     axis.forEach(({
       x,
       y
@@ -139,7 +144,7 @@ class Mesh {
    */
 
 
-  [_getIndex](shape) {
+  getBoundBoxIndex(shape) {
     const {
       pos,
       size
@@ -175,6 +180,45 @@ class Mesh {
 
 }
 
+const _running = Symbol("_running");
+
+const _runRaf = Symbol("_runRaf");
+
+const _getRaf = Symbol("_getRaf");
+
+class Loop {
+  constructor(run) {
+    this.run = run;
+    this[_running] = false;
+    this.requestAnimationFrame = this[_getRaf]();
+  }
+
+  start() {
+    this[_running] = true;
+
+    this[_runRaf]();
+  }
+
+  stop() {
+    this[_running] = false;
+  }
+
+  [_runRaf]() {
+    this.run();
+    this[_running] && this.requestAnimationFrame(this[_runRaf].bind(this));
+  }
+
+  [_getRaf]() {
+    return window.requestAnimationFrame.bind(window);
+  }
+
+}
+
+const _initBox = Symbol("_initBox");
+
+const _initEvent = Symbol("_initEvent"); // TODO: Scene应该是一个特殊的Group
+
+
 class Scene {
   constructor(target, {
     width,
@@ -195,16 +239,16 @@ class Scene {
       width,
       height
     });
-    this._version = 0;
+    this.loop = new Loop(this.update.bind(this));
 
-    this._initBox(ele, hd);
+    this[_initBox](ele, hd);
 
-    this._initEvent(ele);
+    this[_initEvent](ele);
 
     target.appendChild(ele);
   }
 
-  _initBox(ele, hd) {
+  [_initBox](ele, hd) {
     if (hd) {
       const dpr = window.devicePixelRatio;
       ele.style.width = this.width + "px";
@@ -220,7 +264,7 @@ class Scene {
 
   }
 
-  _initEvent(ele) {
+  [_initEvent](ele) {
     this.hoverShapeSet = new Set();
     ele.addEventListener("click", this.onClick.bind(this));
     ele.addEventListener("mousemove", this.onMouseMove.bind(this));
@@ -228,7 +272,6 @@ class Scene {
 
   append(...shapes) {
     shapes.forEach(shape => this.mesh.append(shape));
-    this._version++;
   }
 
   clear(x, y, width, height) {
@@ -295,7 +338,7 @@ class Scene {
     return boundBox;
   }
 
-  update() {
+  draw() {
     if (this.mesh.isDirty) {
       this.getUpdateBoundBox().forEach(box => {
         const {
@@ -314,6 +357,19 @@ class Scene {
         this.ctx.restore();
       });
     }
+  }
+
+  update() {
+    this.clock = Date.now();
+    this.draw();
+  }
+
+  run() {
+    this.loop.start();
+  }
+
+  stop() {
+    this.loop.stop();
   }
 
   queryMesh(x, y, blur = 2) {
@@ -361,17 +417,117 @@ class Scene {
 
 }
 
-function isFn(fn) {
-  return typeof fn === "function";
-}
-function errorHandler$1(msg) {
-  throw new Error(msg);
+const _initAnimate = Symbol("_initAnimate");
+
+const _computeCurAttrs = Symbol("_computeCurAttrs");
+
+const getSingeDist = (startAttr, endAttr, rate) => {
+  return startAttr + (endAttr - startAttr) * rate;
+};
+
+const getDoubleDist = (startAttr, endAttr, rate) => {
+  const [v1, v2] = startAttr;
+  const [endV1, endV2] = endAttr;
+  return [v1 + (endV1 - v1) * rate, v2 + (endV2 - v2) * rate];
+}; // options.fillMode = 'forwards' | 'backwards'
+
+
+class Animator {
+  constructor(shape, startAttrs, endAttrs, options = {
+    duration: 0,
+    fillMode: "backwards",
+    iterations: 1
+  }) {
+    this.target = shape;
+    this.startAttrs = startAttrs;
+    this.endAttrs = endAttrs;
+    this.options = options;
+    this.animationEffect = {
+      state: "pending",
+      iteration: 0
+    };
+    this.loop = new Loop(this.update.bind(this));
+
+    this[_initAnimate]();
+  }
+
+  [_initAnimate]() {
+    this.startTime = Date.now();
+    this.target.setAttrs(this.startAttrs); // TODO: 延迟动画
+
+    this.loop.start();
+  }
+
+  update() {
+    if (this.animationEffect.state === "pending") {
+      this.animationEffect.state = "running";
+    }
+
+    if (this.animationEffect.state === "finish") {
+      if (this.options.fillMode === "forwards") {
+        this.target.setAttrs(this.startAttrs);
+      } else {
+        this.target.setAttrs(this.endAttrs);
+      }
+
+      this.loop.stop();
+      return;
+    }
+
+    const curAttrs = this.getAnimationEffect();
+    this.target.setAttrs(curAttrs);
+  }
+
+  getAnimationEffect() {
+    const lock = Date.now(); // debugger;
+
+    if (lock > this.startTime + this.options.duration && (!this.options.iterations || this.animationEffect.iteration > this.options.iterations)) {
+      this.animationEffect.state = "finish";
+    }
+
+    let rate = 1;
+
+    if (this.animationEffect.state !== "finish") {
+      const dist = lock - this.startTime;
+      rate = dist % this.options.duration / this.options.duration;
+      this.animationEffect.iteration = Math.ceil(dist / this.options.duration);
+    }
+
+    const curAttrs = this[_computeCurAttrs](rate);
+
+    return curAttrs;
+  }
+
+  [_computeCurAttrs](rate) {
+    let curAttrs = {};
+    Object.keys(this.endAttrs).forEach(key => {
+      const startAttr = this.startAttrs[key];
+      const endAttr = this.endAttrs[key]; // TODO: 颜色解析
+
+      switch (key) {
+        case "pos":
+        case "size":
+          curAttrs[key] = getDoubleDist(startAttr, endAttr, rate);
+          break;
+
+        case "opacity":
+        case "rotate":
+          curAttrs[key] = getSingeDist(startAttr, endAttr, rate);
+          break;
+      }
+    });
+    return curAttrs;
+  }
+
 }
 
 function isNumber(v) {
   return typeof v === "number";
 }
 const isArr = Array.isArray;
+function isFn(fn) {
+  return typeof fn === "function";
+}
 function errorHandler(msg) {
   throw new Error(msg);
 }
@@ -391,7 +547,7 @@ class EventDispatcher {
 
 
   addEventListener(type, listener) {
-    if (!isFn(listener)) return errorHandler$1("监听对象不是一个函数");
+    if (!isFn(listener)) return errorHandler("监听对象不是一个函数");
     if (!EVENT_SET.has(type)) return;
 
     if (!this.events[type]) {
@@ -433,6 +589,8 @@ class EventDispatcher {
 
 }
 
+const _animation = Symbol("_animation");
+
 class Node extends EventDispatcher {
   constructor(attrs) {
     super(); // TODO: 入参校验
@@ -452,6 +610,16 @@ class Node extends EventDispatcher {
     }
 
     this.meshes.forEach(mesh => mesh.setDirty(true));
+  }
+
+  getActiveAnimate() {
+    return this[_animation];
+  } // TODO: 入参校验
+
+
+  animate([startAttrs, endAttrs], options) {
+    this[_animation] = new Animator(this, startAttrs, endAttrs, options);
+    return this[_animation];
   }
 
   bindMeshes(mesh) {
@@ -540,10 +708,7 @@ class Group extends Node {
 
 
   createPath() {
-    this.paths = []; // const { pos, size } = this.attrs;
-    // const [x, y] = pos;
-    // const [width, height] = size;
-
+    this.paths = [];
     this.setOffsetAnchor();
   }
   /* override */
@@ -608,9 +773,10 @@ class Group extends Node {
     } = this.attrs;
     const [x, y] = pos;
     const [width, height] = size;
+    ctx.rect(x, y, width, height);
+    ctx.clip();
 
     if (background) {
-      ctx.rect(x, y, width, height);
       ctx.fillStyle = background;
       ctx.fill();
     }

@@ -1,5 +1,5 @@
+const _createAxis = Symbol("_createAxis");
 const _splitMesh = Symbol("_splitMesh");
-const _getIndex = Symbol("_getIndex");
 
 /**
  * @param  {pRect} pRect={x,y,width,height}
@@ -40,7 +40,7 @@ class Mesh {
       indexes;
     // 如果有子mesh则插入最下层mesh
     if (this.children.length) {
-      indexes = this[_getIndex](shape);
+      indexes = this.getBoundBoxIndex(shape);
       for (i = 0; i < indexes.length; i++) {
         this.children[indexes[i]].append(shape);
       }
@@ -58,7 +58,7 @@ class Mesh {
         this[_splitMesh]();
       }
       for (i = 0; i < this.shapes.length; i++) {
-        indexes = this[_getIndex](this.shapes[i]);
+        indexes = this.getBoundBoxIndex(this.shapes[i]);
         for (let k = 0; k < indexes.length; k++) {
           this.children[indexes[k]].append(this.shapes[i]);
         }
@@ -73,7 +73,7 @@ class Mesh {
    * @param  {} shape
    */
   retrieve(shape) {
-    const indexes = this[_getIndex](shape);
+    const indexes = this.getBoundBoxIndex(shape);
 
     let returnShapes = this.shapes;
 
@@ -93,13 +93,8 @@ class Mesh {
     return returnShapes;
   }
 
-  [_splitMesh]() {
-    let nextLevel = this.level + 1;
-    const { x, y, width, height } = this.bounds;
-    let subWidth = width / 2;
-    let subHeight = height / 2;
-
-    const axis = [
+  [_createAxis](x, y, subWidth, subHeight) {
+    return [
       {
         x: x + subWidth,
         y: y,
@@ -117,6 +112,15 @@ class Mesh {
         y: y + subHeight,
       },
     ];
+  }
+
+  [_splitMesh]() {
+    let nextLevel = this.level + 1;
+    const { x, y, width, height } = this.bounds;
+    let subWidth = width / 2;
+    let subHeight = height / 2;
+
+    const axis = this[_createAxis](x, y, subWidth, subHeight);
 
     axis.forEach(({ x, y }) => {
       const mesh = new Mesh(
@@ -134,7 +138,7 @@ class Mesh {
    * @param {Shape} shape
    * @return {number[]}
    */
-  [_getIndex](shape) {
+  getBoundBoxIndex(shape) {
     const { pos, size } = shape.attrs;
     const [x, y] = pos;
     const [width, height] = size;

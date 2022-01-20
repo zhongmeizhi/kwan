@@ -1,5 +1,4 @@
-import { isFn, errorHandler } from "@/tools/base.js";
-import { EVENT_SET } from "./base";
+import { isFn, errorHandler, EVENT_SET } from "../utils/tool.js";
 
 class EventDispatcher {
   constructor() {

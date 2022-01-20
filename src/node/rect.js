@@ -1,5 +1,5 @@
 import Node from "./node";
-import { isArr, isNumber } from "../tools/base.js";
+import { isArr, isNumber } from "../utils/tool.js";
 
 const _transformRadius = Symbol("_transformRadius");
 const _buildPath = Symbol("_buildPath");

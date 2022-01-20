@@ -1,5 +1,10 @@
 import Mesh from "../mesh/index";
+import Loop from "../loop/index";
 
+const _initBox = Symbol("_initBox");
+const _initEvent = Symbol("_initEvent");
+
+// TODO: Scene应该是一个特殊的Group
 class Scene {
   constructor(target, { width, height, hd = true }) {
     if (!target || !(target instanceof HTMLElement)) {
@@ -15,13 +20,13 @@ class Scene {
       width,
       height,
     });
-    this._version = 0;
-    this._initBox(ele, hd);
-    this._initEvent(ele);
+    this.loop = new Loop(this.update.bind(this));
+    this[_initBox](ele, hd);
+    this[_initEvent](ele);
     target.appendChild(ele);
   }
 
-  _initBox(ele, hd) {
+  [_initBox](ele, hd) {
     if (hd) {
       const dpr = window.devicePixelRatio;
       ele.style.width = this.width + "px";
@@ -37,7 +42,7 @@ class Scene {
     // ele.style.transform = "translateZ(0)";
   }
 
-  _initEvent(ele) {
+  [_initEvent](ele) {
     this.hoverShapeSet = new Set();
     ele.addEventListener("click", this.onClick.bind(this));
     ele.addEventListener("mousemove", this.onMouseMove.bind(this));
@@ -45,7 +50,6 @@ class Scene {
 
   append(...shapes) {
     shapes.forEach((shape) => this.mesh.append(shape));
-    this._version++;
   }
 
   clear(x, y, width, height) {
@@ -104,7 +108,7 @@ class Scene {
     return boundBox;
   }
 
-  update() {
+  draw() {
     if (this.mesh.isDirty) {
       this.getUpdateBoundBox().forEach((box) => {
         const { x, y, width, height } = box.bounds;
@@ -118,6 +122,19 @@ class Scene {
         this.ctx.restore();
       });
     }
+  }
+
+  update() {
+    this.clock = Date.now();
+    this.draw();
+  }
+
+  run() {
+    this.loop.start()
+  }
+
+  stop() {
+    this.loop.stop()
   }
 
   queryMesh(x, y, blur = 2) {

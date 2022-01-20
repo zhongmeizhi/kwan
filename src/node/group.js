@@ -1,5 +1,4 @@
 import Node from "./node";
-import { isNumber, RADIAN } from "../tools/base";
 
 class Group extends Node {
   constructor(args) {
@@ -11,10 +10,6 @@ class Group extends Node {
   /* override */
   createPath() {
     this.paths = [];
-    // const { pos, size } = this.attrs;
-    // const [x, y] = pos;
-    // const [width, height] = size;
-
     this.setOffsetAnchor();
   }
 
@@ -63,8 +58,9 @@ class Group extends Node {
     const [x, y] = pos;
     const [width, height] = size;
 
+    ctx.rect(x, y, width, height);
+    ctx.clip();
     if (background) {
-      ctx.rect(x, y, width, height);
       ctx.fillStyle = background;
       ctx.fill();
     }
@@ -75,7 +71,6 @@ class Group extends Node {
       shape.draw(ctx);
     });
   }
-
 }
 
 export default Group;

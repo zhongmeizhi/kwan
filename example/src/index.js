@@ -23,7 +23,7 @@ const arr = new Array(0).fill(0).map(
       // borderRadius: [8],
     })
 );
-scene.append(...arr)
+scene.append(...arr);
 
 const rect = new shapes.Rect({
   pos: [280, 130],
@@ -88,7 +88,7 @@ ring.addEventListener("click", () => {
 const group = new Group({
   pos: [330, 330],
   size: [180, 180],
-  background: 'yellow',
+  background: "yellow",
   // anchor: [0, 0],
   rotate: 30,
 });
@@ -127,21 +127,18 @@ const subRing = new shapes.Ring({
   // rotate: 30,
 });
 
-group.append(subRect, subArc, subRing)
+group.append(subRect, subArc, subRing);
+scene.append(rect, arc, ring, group);
 
-scene.append(rect,arc, ring, group)
+group.animate(
+  [
+    { rotate: 0, pos: [330, 330], size: [180, 180], opacity: 1 },
+    { rotate: 360, pos: [130, 130], size: [80, 80], opacity: 0 },
+  ],
+  {
+    duration: 1000,
+    iterations: Infinity,
+  }
+);
 
-const run = () => {
-  rect.setAttrs({
-    borderRadius: [random(50), random(50), random(50), random(50)],
-    background: 'red'
-  });
-  arr.forEach(a => {
-    a.setAttrs({
-      pos: [random(500), random(500)],
-    })
-  })
-  scene.update();
-  requestAnimationFrame(run);
-};
-run();
+scene.run();
