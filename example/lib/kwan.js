@@ -219,6 +219,20 @@ class Loop {
 
 }
 
+function isNumber(v) {
+  return typeof v === "number";
+}
+const isArr = Array.isArray;
+function isFn(fn) {
+  return typeof fn === "function";
+}
+function errorHandler(msg) {
+  throw new Error(msg);
+}
+const PI = Math.PI;
+const PI2 = Math.PI * 2;
+const RADIAN = PI / 180;
+
 const _initBox = Symbol("_initBox");
 
 const _initEvent = Symbol("_initEvent"); // TODO: Scene应该是一个特殊的Group
@@ -231,7 +245,7 @@ class Scene {
     hd = true
   }) {
     if (!target || !(target instanceof HTMLElement)) {
-      throw new Error("不能找到匹配的 DOM 元素");
+      errorHandler("Error: don't find DOM:" + target);
     }
 
     const ele = document.createElement("canvas");
@@ -365,7 +379,6 @@ class Scene {
   }
 
   update() {
-    this.clock = Date.now();
     this.draw();
   }
 
@@ -562,20 +575,6 @@ class Animator {
   }
 
 }
-
-function isNumber(v) {
-  return typeof v === "number";
-}
-const isArr = Array.isArray;
-function isFn(fn) {
-  return typeof fn === "function";
-}
-function errorHandler(msg) {
-  throw new Error(msg);
-}
-const PI = Math.PI;
-const PI2 = Math.PI * 2;
-const RADIAN = PI / 180;
 
 const EVENT_SET = new Set(["click", "mousemove", "mouseenter", "mouseleave"]);
 

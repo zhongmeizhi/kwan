@@ -1,5 +1,6 @@
 import Mesh from "../mesh/index";
 import Loop from "../loop/index";
+import { errorHandler } from "../utils/tool";
 
 const _initBox = Symbol("_initBox");
 const _initEvent = Symbol("_initEvent");
@@ -8,7 +9,7 @@ const _initEvent = Symbol("_initEvent");
 class Scene {
   constructor(target, { width, height, hd = true }) {
     if (!target || !(target instanceof HTMLElement)) {
-      throw new Error("不能找到匹配的 DOM 元素");
+      errorHandler("Error: don't find DOM:" + target);
     }
     const ele = document.createElement("canvas");
     this.ctx = ele.getContext("2d");
@@ -125,7 +126,6 @@ class Scene {
   }
 
   update() {
-    this.clock = Date.now();
     this.draw();
   }
 

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      html {
+        background-color: #17181e;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        border: 0;
+      }
+      #canvasContainer {
+        margin-left: 220px;
+      }
+      canvas {
+        border: 1px solid;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvasContainer"></div>
+
+    <script type="module">
+      import kwan from "./lib/kwan.js";
+
+      const random = (multi) => {
+        return Math.ceil(Math.random() * multi);
+      };
+
+      const { Scene, shapes, Group } = kwan;
+      const ele = document.getElementById("canvasContainer");
+
+      const scene = new Scene(ele, {
+        width: 512,
+        height: 512,
+        // hd: false
+      });
+
+      const rect = new shapes.Rect({
+        pos: [280, 130],
+        size: [80, 80],
+        background: "yellow",
+        // borderRadius: [40],
+        rotate: 30,
+        anchor: [0, 0],
+        rotate: 180
+      });
+
+      rect.addEventListener("click", () => {
+        rect.setAttrs({
+          borderRadius: [random(50), random(50), random(50), random(50)],
+        });
+      });
+
+      rect.addEventListener("mouseenter", () => {
+        rect.setAttrs({
+          background: "red",
+        });
+      });
+
+      rect.addEventListener("mouseleave", () => {
+        rect.setAttrs({
+          background: "yellow",
+        });
+      });
+
+      scene.append(rect);
+
+      scene.start();
+    </script>
+  </body>
+</html>
